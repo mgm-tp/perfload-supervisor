@@ -1,0 +1,465 @@
+/*
+ * Copyright (c) 2013 mgm technology partners GmbH
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+import java.text.SimpleDateFormat
+import java.text.DateFormat
+import org.apache.commons.lang.StringUtils
+import org.apache.commons.io.FilenameUtils
+
+ant.project.setName('Supervisor')
+
+// adds a build listener for logging with SLF4J/Logback
+Slf4jListener slf4jListener = new Slf4jListener()
+binding.addBuildListener(slf4jListener)
+
+ConfigObject commonConfig = SupervisorUtils.loadConfig(null, 'CommonConfig.groovy')
+// add to binding so we can access the keys directly as variables
+commonConfig.each { key, value -> binding.setVariable(key, value) }
+
+if (multiTenancy) {
+	try { tenant } catch (MissingPropertyException ex) {
+		// add tenant to the script's binding, i. e. make it a global variable
+		tenant = System.getenv('PERFLOAD_TENANT')
+	}
+	if (!tenant) {
+		throw new IllegalStateException("Multi-tenancy mode is activated but no tenant was specified.");
+	}
+} else {
+	tenant = null
+}
+
+ConfigObject supervisorConfig = SupervisorUtils.loadConfig(tenant, 'SupervisorConfig.groovy')
+// add to binding so we can access the keys directly as variables
+supervisorConfig.each { key, value -> binding.setVariable(key, value) }
+
+if (runProjectSpecificTargets) {
+	// includes project-specific targets as if they were directly defined in this file
+	File projectTargetsFile = new File("conf/${tenant ? tenant : ''}/ProjectTargets.gant")
+	echo(message: "Including project targets file: $projectTargetsFile")
+	includeTargets << projectTargetsFile
+}
+
+ConfigObject loadTestConfig // the config object loaded from 'LoadTestConfig.groovy'
+ConfigObject commands // the config object loaded from 'Commands.groovy'
+RemoteTasks remoteTasks // does all the remote stuff handling (SCP, SSH)
+
+target(welcome: 'Displays a welcome message showing version information.') {
+	int len = 65
+	String copyright = StringUtils.center('(c) ${year}, mgm technology partners GmbH', len)
+	String welcomeMsg = StringUtils.center('Welcome to perfLoad\'s Supervisor ${project.version}', len)
+
+	List list1 = []
+	(len + 2).times { list1 << '*' }
+	String msg1 = list1.join()
+
+	List list2 = ['*']
+	len.times { list2 << ' ' }
+	list2 << '*'
+	String msg2 = list2.join()
+
+	String message = """
+	$msg1
+	$msg2
+	$msg2
+	*${welcomeMsg}*
+	*${copyright}*
+	$msg2
+	$msg2
+	$msg1
+	"""
+
+	println message
+
+	echo(message: "Running in " + (tenant ? 'multi-' : 'single-') + "tenancy mode.")
+	if (tenant) {
+		echo(message: "Tenant: $tenant")
+	}
+}
+
+target(init: 'Initializes the Supervisor loading basic configuration for testplan-independent tasks') {
+	depends(welcome)
+	loadTestConfig = SupervisorUtils.loadTestConfig(tenant, 'LoadTestConfig.groovy')
+	commands = SupervisorUtils.loadConfig(Commands.class)
+	remoteTasks = new RemoteTasks(loadTestConfig: loadTestConfig, commands: commands)
+}
+
+target(loadTestConfiguration: 'Loads the test plan possibly prompting for the testplan to be used.') {
+	depends(init)
+
+	// if not set via command-line (-Dtestplan=<...>), the user is prompted for the test config to be used
+	try { testplan } catch (MissingPropertyException ex) {
+		// add testplan to the script's binding, i. e. make it a global variable
+		testplan = promptForTestplan()
+	}
+
+	// Use the testplan file's base name as the test name and add it to the script's binding.
+	// Thus, it is also accessible by an included 'ProjectTargets.gant' file.k
+	testname = FilenameUtils.getBaseName(testplan)
+
+	// prefix the results directory with a timestamp
+	DateFormat df = new SimpleDateFormat('yyyyMMdd-HHmm')
+
+	testResultsDir = new File(resultsDir, "${tenant ? tenant : ''}/${df.format(new Date())}_${FilenameUtils.getBaseName(testplan)}")
+
+	// set dir as system property and reset logging, so an additional log file is written to the results dir
+	System.setProperty('testResultsDir', testResultsDir.path)
+	slf4jListener.resetLogging()
+
+	mkdir(dir: testResultsDir)
+	remoteTasks.resultsDir = testResultsDir
+
+	echo(message: "Using testplan '$testplan'")
+	echo(message: "Results directory: '$testResultsDir'")
+
+	// The number of daemons to launch and their ports are read from the testplan
+	// and do not need any extra configuration.
+	Map<String, List<String>> daemons = readDaemonsFromTestplan("$consoleDir/testplans/$testplan")
+
+	// add daemon ports to the config
+	SupervisorUtils.enhanceConfigWithDaemonPorts(loadTestConfig, daemons)
+}
+
+target(runLoadTest: 'Runs a load test.') {
+	depends(loadTestConfiguration)
+
+	// if not set via command-line (-DtestComment=<...>), the user is prompted for the test config to be used
+	try { testComment } catch (MissingPropertyException ex) {
+		// add testplan to the script's binding, i. e. make it a global variable
+		ant.input(message: 'Please enter some comment for the test:', addProperty: 'testComment')
+	}
+
+	if (cleanupBeforeTest) {
+		cleanupAll()
+	}
+
+	if (runProjectSpecificTargets) {
+		before()
+	}
+
+	startPerfmons()
+	stopDaemons()
+	sleep(5000L) // otherwise ports might still bind bound
+	startDaemons()
+
+	if (startServersBeforeTest) {
+		stopServers()
+		startServers()
+	}
+
+	if (runProjectSpecificTargets) {
+		performSystemCheck()
+	}
+
+	startTest()
+
+	if (shutdownServersAfterTest) {
+		stopServers()
+	}
+
+	stopDaemons()
+	stopPerfmons()
+
+	if (runProjectSpecificTargets) {
+		after()
+	}
+
+	new File(consoleDir, 'perfload.meta.utf8.props').withWriterAppend('UTF-8') { writer ->
+		new PrintWriter(writer).println("test.comment=${testComment}")
+	}
+
+	if (collectResults) {
+		zipAll()
+		downloadAll()
+	}
+	
+	if (createReport) {
+		runPerfAlyzer()
+	}
+}
+
+target(startDaemons: 'Starts daemons') {
+	depends(loadTestConfiguration)
+	remoteTasks.startDaemons()
+}
+
+target(stopDaemons: 'Stops daemons') {
+	depends(loadTestConfiguration)
+	remoteTasks.stopDaemons()
+}
+
+target(startPerfmons: 'Starts perfmons') {
+	depends(init)
+	remoteTasks.startPerfmons()
+}
+
+target(stopPerfmons: 'Stops perfmons') {
+	depends(init)
+	remoteTasks.stopPerfmons()
+}
+
+target(zipConsoleFiles: 'Zips all console log files, status file, and the testplan') {
+	depends(loadTestConfiguration)
+	zip(destfile: "${testResultsDir}/console/console-logs.zip") {
+		fileset(dir: "${consoleDir}") {
+			include(name: '*.log')
+			include(name: 'ltStatus.txt')
+			include(name: 'ltThreads.txt')
+			include(name: 'perfload.meta.utf8.props')
+		}
+
+		File testplanFile = new File("${consoleDir}/testplans/${testplan}")
+		fileset(dir: testplanFile.parent, includes: testplanFile.name)
+
+		// for load profile tests, include the events file
+		def config = new XmlSlurper().parse(testplanFile)
+		String eventsFile = config.testplans.testplan.loadProfileConfig
+		if (StringUtils.isNotEmpty(eventsFile)) {
+			fileset(dir: "${testplanFile.parent}/loadprofiles", includes: "${eventsFile}")
+		}
+	}
+}
+
+target(cleanupConsoleFiles: 'Cleans up all daemon logs via SSH') {
+	depends(loadTestConfiguration)
+	delete {
+		fileset(dir: "${consoleDir}") {
+			include(name: '*.log')
+			include(name: 'ltStatus.txt')
+			include(name: 'ltThreads.txt')
+			include(name: 'perfload.meta.utf8.props')
+		}
+	}
+}
+
+target(zipAll: 'Zips all result files via SSH') {
+	zipConsoleFiles()
+	zipDaemonLogs()
+	zipClientLogs()
+	zipMeasuringLogs()
+	zipPerfmonLogs()
+	zipConfiguredFiles()
+}
+
+target(zipDaemonLogs: 'Zips all daemon logs via SSH') {
+	depends(loadTestConfiguration)
+	remoteTasks.zipDaemonLogs()
+}
+
+target(zipClientLogs: 'Zips all client logs via SSH') {
+	depends(loadTestConfiguration)
+	remoteTasks.zipClientLogs()
+}
+
+target(zipMeasuringLogs: 'Zips all measuring logs via SSH') {
+	depends(loadTestConfiguration)
+	remoteTasks.zipMeasuringLogs()
+}
+
+target(zipConfiguredFiles: 'Zips all configured files via SSH') {
+	depends(loadTestConfiguration)
+	remoteTasks.zipConfiguredFiles()
+}
+
+target(zipPerfmonLogs: 'Zips all perfmon logs via SSH') {
+	depends(loadTestConfiguration)
+	remoteTasks.zipPerfmonLogs()
+}
+
+target(downloadAll: 'Downloads all result files via SCP.') {
+	downloadDaemonLogs()
+	downloadClientLogs()
+	downloadMeasuringLogs()
+	downloadPerfmonLogs()
+	downloadConfiguredFiles()
+}
+
+target(downloadDaemonLogs: 'Collects all daemon logs via SCP') {
+	depends(loadTestConfiguration)
+	remoteTasks.downloadDaemonLogs()
+}
+
+target(downloadClientLogs: 'Collects all client logs via SCP') {
+	depends(loadTestConfiguration)
+	remoteTasks.downloadClientLogs()
+}
+
+target(downloadMeasuringLogs: 'Collects all measuring logs via SCP') {
+	depends(loadTestConfiguration)
+	remoteTasks.downloadMeasuringLogs()
+}
+
+target(downloadConfiguredFiles: 'Downloads all configured zip files via SCP') {
+	depends(loadTestConfiguration)
+	remoteTasks.downloadConfiguredFiles()
+}
+
+target(downloadPerfmonLogs: 'Collects all perfmon logs via SCP') {
+	depends(loadTestConfiguration)
+	remoteTasks.downloadPerfmonLogs()
+}
+
+target(cleanupAll: 'Perform all clean-up tasks.') {
+	cleanupConsoleFiles()
+	cleanupDaemonFiles()
+	cleanupClientFiles()
+	cleanupMeasuringFiles()
+	cleanupPerfmonFiles()
+	cleanupConfiguredFiles()
+}
+
+target(cleanupDaemonFiles: 'Cleans up all daemon logs via SSH') {
+	depends(loadTestConfiguration)
+	remoteTasks.cleanupDaemonFiles()
+}
+
+target(cleanupClientFiles: 'Cleans up all client logs via SSH') {
+	depends(loadTestConfiguration)
+	remoteTasks.cleanupClientFiles()
+}
+
+target(cleanupMeasuringFiles: 'Cleans up all measuring logs via SSH') {
+	depends(loadTestConfiguration)
+	remoteTasks.cleanupMeasuringFiles()
+}
+
+target(cleanupConfiguredFiles: 'Cleans up all configured files via SSH') {
+	depends(loadTestConfiguration)
+	remoteTasks.cleanupConfiguredFiles()
+}
+
+target(cleanupPerfmonFiles: 'Cleans up all perfmon files via SSH') {
+	depends(loadTestConfiguration)
+	remoteTasks.cleanupPerfmonFiles()
+}
+
+target(startServers: 'Starts up configured servers') {
+	depends(init)
+	remoteTasks.execStartupCommands()
+}
+
+target(stopServers: 'Shuts down configured servers') {
+	depends(init)
+	remoteTasks.execShutdownCommands()
+}
+
+target(startTest: 'Starts a load test') {
+	depends(loadTestConfiguration)
+	switch (osfamily) {
+		case 'unix':
+			exec(executable: './console.sh', spawn: false, dir: consoleDir, logError: true) {
+				arg(value: '-testplan')
+				arg(value: "testplans/$testplan")
+				arg(value: '-timeout')
+				arg(value: "$loadProfileTestTimeout")
+			}
+			break
+		case 'windows':
+			exec(executable: 'cmd.exe', spawn: false, dir: consoleDir, logError: true) {
+				arg(value: '/c')
+				arg(value: "console.cmd -testplan testplans/$testplan -timeout $loadProfileTestTimeout")
+			}
+			break
+	}
+}
+
+target(abortLoadTest: 'Aborts a load test') {
+	depends(loadTestConfiguration)
+	switch (osfamily) {
+		case 'unix':
+			exec(executable: './console.sh', spawn: false, dir: consoleDir, logError: true) {
+				arg(value: '-testplan')
+				arg(value: "testplans/$testplan")
+				arg(value: '-abort')
+			}
+			break
+		case 'windows':
+			exec(executable: 'cmd.exe', spawn: false, dir: consoleDir, logError: true) {
+				arg(value: '/c')
+				arg(value: "console.cmd -testplan testplans/$testplan -abort")
+			}
+			break
+	}
+}
+
+target(runPerfAlyzer: 'Run perfAlyzer to create the report') {
+	depends(loadTestConfiguration)
+
+	String absoluteResultsDir = testResultsDir.getAbsolutePath()
+
+	switch (osfamily) {
+		case 'unix':
+			exec(executable: './perfalyzer.sh', spawn: false, dir: perfAlyzerDir, logError: true) {
+				arg(value: '-i')
+				arg(value: absoluteResultsDir)
+				if (multiTenancy) {
+					arg(value: '-o')
+					arg(value: "output/${tenant}")
+				}
+			}
+			break
+		case 'windows':
+			exec(executable: 'cmd.exe', spawn: false, dir: perfAlyzerDir, logError: true) {
+				arg(value: '/c')
+				arg(value: "perfalyzer.cmd -i ${absoluteResultsDir}")
+				if (multiTenancy) {
+					arg(value: '-o')
+					arg(value: "output/${tenant}")
+				}
+			}
+			break
+	}
+}
+
+setDefaultTarget(runLoadTest)
+
+/**
+ * Prompts the user to select a testplan and returns the selected one.
+ */
+private String promptForTestplan() {
+	int i = 1;
+	Map<Integer, String> testplans = [:]
+	new File(consoleDir, "testplans/${tenant ? tenant : ''}").eachFileMatch(~/(?!testjars).*\.xml/, { testplans[i++] = it.name })
+
+	String lineSep = System.properties.'line.separator'
+	String prompt = "${lineSep}Please select the testplan you'd like to use:$lineSep"
+	prompt += testplans.collect{ key, value -> "${StringUtils.leftPad(String.valueOf(key), 2)}) $value" }.join(lineSep) + lineSep
+
+	// displays all configured testplans prefixed by running numbers,
+	// which the user needs to enter in order to select the desired testplan
+	input(message: prompt, validargs: testplans.keySet().join(','), addProperty: 'testplanIndex')
+	return "${tenant ? tenant : ''}/${testplans[testplanIndex as int]}"
+}
+
+/**
+ * Reads daemon information from the testplan.
+ */
+private Map<String, List<Integer>> readDaemonsFromTestplan(String testplanPath) {
+	Map<String, List<Integer>> daemonsMap = [:]
+
+	def config = new XmlSlurper().parse(testplanPath)
+	config.daemons.daemon.each {
+		String host = it.@host.text()
+		Integer port = Integer.valueOf(it.@port.text())
+		List<String> ports = daemonsMap[host]
+		if (!ports) {
+			// add new list to the map
+			daemonsMap[host] = [port]
+		} else {
+			// append port to existing list for the current host
+			ports << port
+		}
+	}
+	return daemonsMap
+}

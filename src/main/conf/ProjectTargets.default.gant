@@ -1,0 +1,22 @@
+
+// custom properties file, if necessary
+// ant.property(file: 'ProjectTargets.properties')
+
+// custom config object, if necessary
+// myProjectConfig = SupervisorUtils.loadConfig(ProjectTargetsConfig.class)
+
+
+target(before: 'Executes project-specific tasks before the load test') {
+	
+}
+
+target(after: 'Executes project-specific tasks after the load test') {
+	
+}
+
+target(performSystemCheck: 'Checks that everything is correctly up and running') {
+	/*
+	 * In order to fail this target, a non-zero exit value must be returned, e. g.:
+	 * -1
+	 */
+}
