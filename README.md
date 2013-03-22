@@ -6,9 +6,8 @@
 
 perfLoad is [mgm's](http://www.mgm-tp.com) load and performance testing framework.
 
-[perfLoad Wiki](https://github.com/mgm-tp/perfload/wiki)
-
-[perfLoad Issues](https://github.com/mgm-tp/perfload/issues)
+* [perfLoad Wiki](https://github.com/mgm-tp/perfload/wiki)
+* [perfLoad Issues](https://github.com/mgm-tp/perfload/issues)
 
 ---
 
