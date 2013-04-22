@@ -19,7 +19,23 @@
 
 cd %~dp0
 
-call setenv.cmd
+if exist setenv.cmd call setenv.cmd
+
+set GANT_CMD=gant.bat
+
+if not "%GANT_HOME%" == "" goto gotGantHome
+
+if not "%GROOVY_HOME%" == "" goto gotGroovyHome
+
+:gotGantHome
+set GANT_CMD="%GANT_HOME%\bin\%GANT_CMD%"
+goto endSetEnv
+
+:gotGroovyHome
+if not exist "%GROOVY_HOME%\bin\gant.bat" goto endSetEnv
+
+set GANT_CMD="%GROOVY_HOME%\bin\%GANT_CMD%"
+:endSetEnv
 
 set ARGS=-T
 if not "%1" == "" set ARGS=%*

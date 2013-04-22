@@ -17,8 +17,22 @@
 
 
 cd `dirname $0`
+[ -f setenv.sh ] && . ./setenv.sh
 
-. ./setenv.sh
+GANT_CMD=gant
+
+if [ ! "x$GANT_HOME" = "x" ] ; then
+
+	GANT_CMD="$GANT_HOME/bin/$GANT_CMD"
+
+elif [ ! "x$GROOVY_HOME" = "x" ] ; then
+
+	if [ -x "$GROOVY_HOME/bin/gant" ] ; then
+
+		GANT_CMD="$GROOVY_HOME/bin/$GANT_CMD"
+
+	fi
+fi
 
 ARGS="-T"
 if [ "x$1" = "x" ] ; then
