@@ -13,7 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import groovy.util.ConfigSlurper
+package com.mgmtp.perfload.supervisor
+
 
 /**
  * Utility class for common Supervisor-related tasks.

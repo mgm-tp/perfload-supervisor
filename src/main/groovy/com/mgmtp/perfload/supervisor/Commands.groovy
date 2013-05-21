@@ -18,6 +18,8 @@
  *
  * @author rnaegele
  */
+package com.mgmtp.perfload.supervisor
+
 unix {
 	cmdStartDaemon = { dir, port -> "cd $dir && ./daemon.sh -port $port" }
 

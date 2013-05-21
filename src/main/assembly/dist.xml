@@ -33,35 +33,26 @@
 			</includes>
 		</fileSet>
 		<fileSet>
-			<directory>${basedir}/src/main</directory>
+			<directory>${basedir}/src/main/scripts</directory>
 			<outputDirectory>/</outputDirectory>
 			<includes>
-				<include>ProjectTargets.default.gant</include>
 				<include>*.cmd</include>
-				<include>conf/*default.groovy</include>
-				<include>conf/logback.groovy</include>
-				<include>scripts/*.groovy</include>
+				<include>conf/*default.*</include>
 			</includes>
-			<excludes>
-				<exclude>setenv.cmd</exclude>
-			</excludes>
 		</fileSet>
 		<fileSet>
-			<directory>${basedir}/src/main</directory>
+			<directory>${basedir}/src/main/scripts</directory>
 			<outputDirectory>/</outputDirectory>
 			<includes>
 				<include>*.sh</include>
 			</includes>
-			<excludes>
-				<exclude>setenv.sh</exclude>
-			</excludes>
-			<fileMode>775</fileMode>
 			<lineEnding>unix</lineEnding>
+			<fileMode>775</fileMode>
 		</fileSet>
 	</fileSets>
 	<files>
 		<file>
-			<source>${basedir}/src/main/Supervisor.gant</source>
+			<source>${basedir}/src/main/scripts/Supervisor.gant</source>
 			<outputDirectory>/</outputDirectory>
 			<filtered>true</filtered>
 		</file>

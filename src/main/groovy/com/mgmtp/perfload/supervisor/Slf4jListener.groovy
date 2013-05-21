@@ -13,21 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import org.apache.tools.ant.BuildListener
+package com.mgmtp.perfload.supervisor
 
 import org.apache.tools.ant.BuildEvent
 import org.apache.tools.ant.BuildListener
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+
 import ch.qos.logback.classic.LoggerContext
-import ch.qos.logback.core.util.StatusPrinter
-import ch.qos.logback.classic.gaffer.GafferUtil
-import ch.qos.logback.core.joran.util.ConfigurationWatchListUtil
 import ch.qos.logback.classic.util.ContextInitializer
+
 
 /**
  * A {@link BuildListener} implementation that uses SLF4J for logging.
- * 
+ *
  * @author rnaegele
  */
 class Slf4jListener implements BuildListener {
@@ -38,7 +37,7 @@ class Slf4jListener implements BuildListener {
 		lc.reset()
 		new ContextInitializer(lc).autoConfig()
 	}
-	
+
 	@Override
 	public void buildStarted(final BuildEvent event) {
 		log.debug("Build started.")
@@ -85,7 +84,7 @@ class Slf4jListener implements BuildListener {
 
 	@Override
 	public void messageLogged(final BuildEvent event) {
-		String name;
+		String name
 		Object categoryObject = event?.getTask()?.getTaskName()
 		if (categoryObject == null) {
 			categoryObject = event?.getTarget()?.getName()

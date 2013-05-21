@@ -17,6 +17,10 @@ import java.text.SimpleDateFormat
 import java.text.DateFormat
 import org.apache.commons.lang.StringUtils
 import org.apache.commons.io.FilenameUtils
+import com.mgmtp.perfload.supervisor.Slf4jListener
+import com.mgmtp.perfload.supervisor.RemoteTasks
+import com.mgmtp.perfload.supervisor.SupervisorUtils
+import com.mgmtp.perfload.supervisor.Commands
 
 ant.project.setName('Supervisor')
 
@@ -57,7 +61,7 @@ RemoteTasks remoteTasks // does all the remote stuff handling (SCP, SSH)
 
 target(welcome: 'Displays a welcome message showing version information.') {
 	int len = 65
-	String copyright = StringUtils.center('(c) ${year}, mgm technology partners GmbH', len)
+	String copyright = StringUtils.center('(c) ${copyright.year}, mgm technology partners GmbH', len)
 	String welcomeMsg = StringUtils.center('Welcome to perfLoad\'s Supervisor ${project.version}', len)
 
 	List list1 = []
@@ -183,7 +187,7 @@ target(runLoadTest: 'Runs a load test.') {
 		zipAll()
 		downloadAll()
 	}
-	
+
 	if (createReport) {
 		runPerfAlyzer()
 	}

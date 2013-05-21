@@ -41,7 +41,7 @@ fi
 
 JAVA_OPTS=-Xmx256m
 
-CLASSPATH=scripts:conf:lib/*
+CLASSPATH=conf:lib/'\*'
 
 echo "$GANT_CMD -f Supervisor.gant $ARGS"
 
