@@ -39,6 +39,9 @@
 				<include>*.cmd</include>
 				<include>conf/*default.*</include>
 			</includes>
+			<excludes>
+				<exclude>setenv.cmd</exclude>
+			</excludes>
 		</fileSet>
 		<fileSet>
 			<directory>${basedir}/src/main/scripts</directory>
@@ -46,7 +49,9 @@
 			<includes>
 				<include>*.sh</include>
 			</includes>
-			<lineEnding>unix</lineEnding>
+			<excludes>
+				<exclude>setenv.sh</exclude>
+			</excludes>
 			<fileMode>775</fileMode>
 		</fileSet>
 	</fileSets>

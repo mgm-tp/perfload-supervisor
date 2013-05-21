@@ -15,6 +15,8 @@
  */
 package com.mgmtp.perfload.supervisor
 
+import org.apache.commons.lang.SystemUtils
+
 
 /**
  * Utility class for common Supervisor-related tasks.
@@ -46,11 +48,11 @@ class SupervisorUtils {
 	private static void enhanceConfig(ConfigObject supervisorConfig) {
 		supervisorConfig.hostConfigs.each { host, params ->
 			if (params.perfmon) {
-				params.perfmonDir = params.perfLoadHome + "/perfmon"
+				params.perfmonDir = params.perfLoadHome + SystemUtils.FILE_SEPARATOR + "perfmon"
 			}
 			if (params.client) {
-				params.clientDir = params.perfLoadHome + "/client"
-				params.daemonDir = params.perfLoadHome + "/daemon"
+				params.clientDir = params.perfLoadHome + SystemUtils.FILE_SEPARATOR + "client"
+				params.daemonDir = params.perfLoadHome + SystemUtils.FILE_SEPARATOR + "daemon"
 			}
 		}
 	}

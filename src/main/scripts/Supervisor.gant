@@ -18,7 +18,7 @@ import java.text.DateFormat
 import org.apache.commons.lang.StringUtils
 import org.apache.commons.io.FilenameUtils
 import com.mgmtp.perfload.supervisor.Slf4jListener
-import com.mgmtp.perfload.supervisor.RemoteTasks
+import com.mgmtp.perfload.supervisor.SupervisorTasks
 import com.mgmtp.perfload.supervisor.SupervisorUtils
 import com.mgmtp.perfload.supervisor.Commands
 
@@ -57,7 +57,7 @@ if (runProjectSpecificTargets) {
 
 ConfigObject loadTestConfig // the config object loaded from 'LoadTestConfig.groovy'
 ConfigObject commands // the config object loaded from 'Commands.groovy'
-RemoteTasks remoteTasks // does all the remote stuff handling (SCP, SSH)
+SupervisorTasks supervisorTasks // does all the remote stuff handling (SCP, SSH)
 
 target(welcome: 'Displays a welcome message showing version information.') {
 	int len = 65
@@ -96,7 +96,7 @@ target(init: 'Initializes the Supervisor loading basic configuration for testpla
 	depends(welcome)
 	loadTestConfig = SupervisorUtils.loadTestConfig(tenant, 'LoadTestConfig.groovy')
 	commands = SupervisorUtils.loadConfig(Commands.class)
-	remoteTasks = new RemoteTasks(loadTestConfig: loadTestConfig, commands: commands)
+	supervisorTasks = new SupervisorTasks(ant: ant, loadTestConfig: loadTestConfig, commands: commands)
 }
 
 target(loadTestConfiguration: 'Loads the test plan possibly prompting for the testplan to be used.') {
@@ -122,7 +122,7 @@ target(loadTestConfiguration: 'Loads the test plan possibly prompting for the te
 	slf4jListener.resetLogging()
 
 	mkdir(dir: testResultsDir)
-	remoteTasks.resultsDir = testResultsDir
+	supervisorTasks.resultsDir = testResultsDir
 
 	echo(message: "Using testplan '$testplan'")
 	echo(message: "Results directory: '$testResultsDir'")
@@ -195,22 +195,22 @@ target(runLoadTest: 'Runs a load test.') {
 
 target(startDaemons: 'Starts daemons') {
 	depends(loadTestConfiguration)
-	remoteTasks.startDaemons()
+	supervisorTasks.startDaemons()
 }
 
 target(stopDaemons: 'Stops daemons') {
 	depends(loadTestConfiguration)
-	remoteTasks.stopDaemons()
+	supervisorTasks.stopDaemons()
 }
 
 target(startPerfmons: 'Starts perfmons') {
 	depends(init)
-	remoteTasks.startPerfmons()
+	supervisorTasks.startPerfmons()
 }
 
 target(stopPerfmons: 'Stops perfmons') {
 	depends(init)
-	remoteTasks.stopPerfmons()
+	supervisorTasks.stopPerfmons()
 }
 
 target(zipConsoleFiles: 'Zips all console log files, status file, and the testplan') {
@@ -258,27 +258,27 @@ target(zipAll: 'Zips all result files via SSH') {
 
 target(zipDaemonLogs: 'Zips all daemon logs via SSH') {
 	depends(loadTestConfiguration)
-	remoteTasks.zipDaemonLogs()
+	supervisorTasks.zipDaemonLogs()
 }
 
 target(zipClientLogs: 'Zips all client logs via SSH') {
 	depends(loadTestConfiguration)
-	remoteTasks.zipClientLogs()
+	supervisorTasks.zipClientLogs()
 }
 
 target(zipMeasuringLogs: 'Zips all measuring logs via SSH') {
 	depends(loadTestConfiguration)
-	remoteTasks.zipMeasuringLogs()
+	supervisorTasks.zipMeasuringLogs()
 }
 
 target(zipConfiguredFiles: 'Zips all configured files via SSH') {
 	depends(loadTestConfiguration)
-	remoteTasks.zipConfiguredFiles()
+	supervisorTasks.zipConfiguredFiles()
 }
 
 target(zipPerfmonLogs: 'Zips all perfmon logs via SSH') {
 	depends(loadTestConfiguration)
-	remoteTasks.zipPerfmonLogs()
+	supervisorTasks.zipPerfmonLogs()
 }
 
 target(downloadAll: 'Downloads all result files via SCP.') {
@@ -291,27 +291,27 @@ target(downloadAll: 'Downloads all result files via SCP.') {
 
 target(downloadDaemonLogs: 'Collects all daemon logs via SCP') {
 	depends(loadTestConfiguration)
-	remoteTasks.downloadDaemonLogs()
+	supervisorTasks.downloadDaemonLogs()
 }
 
 target(downloadClientLogs: 'Collects all client logs via SCP') {
 	depends(loadTestConfiguration)
-	remoteTasks.downloadClientLogs()
+	supervisorTasks.downloadClientLogs()
 }
 
 target(downloadMeasuringLogs: 'Collects all measuring logs via SCP') {
 	depends(loadTestConfiguration)
-	remoteTasks.downloadMeasuringLogs()
+	supervisorTasks.downloadMeasuringLogs()
 }
 
 target(downloadConfiguredFiles: 'Downloads all configured zip files via SCP') {
 	depends(loadTestConfiguration)
-	remoteTasks.downloadConfiguredFiles()
+	supervisorTasks.downloadConfiguredFiles()
 }
 
 target(downloadPerfmonLogs: 'Collects all perfmon logs via SCP') {
 	depends(loadTestConfiguration)
-	remoteTasks.downloadPerfmonLogs()
+	supervisorTasks.downloadPerfmonLogs()
 }
 
 target(cleanupAll: 'Perform all clean-up tasks.') {
@@ -325,37 +325,37 @@ target(cleanupAll: 'Perform all clean-up tasks.') {
 
 target(cleanupDaemonFiles: 'Cleans up all daemon logs via SSH') {
 	depends(loadTestConfiguration)
-	remoteTasks.cleanupDaemonFiles()
+	supervisorTasks.cleanupDaemonFiles()
 }
 
 target(cleanupClientFiles: 'Cleans up all client logs via SSH') {
 	depends(loadTestConfiguration)
-	remoteTasks.cleanupClientFiles()
+	supervisorTasks.cleanupClientFiles()
 }
 
 target(cleanupMeasuringFiles: 'Cleans up all measuring logs via SSH') {
 	depends(loadTestConfiguration)
-	remoteTasks.cleanupMeasuringFiles()
+	supervisorTasks.cleanupMeasuringFiles()
 }
 
 target(cleanupConfiguredFiles: 'Cleans up all configured files via SSH') {
 	depends(loadTestConfiguration)
-	remoteTasks.cleanupConfiguredFiles()
+	supervisorTasks.cleanupConfiguredFiles()
 }
 
 target(cleanupPerfmonFiles: 'Cleans up all perfmon files via SSH') {
 	depends(loadTestConfiguration)
-	remoteTasks.cleanupPerfmonFiles()
+	supervisorTasks.cleanupPerfmonFiles()
 }
 
 target(startServers: 'Starts up configured servers') {
 	depends(init)
-	remoteTasks.execStartupCommands()
+	supervisorTasks.execStartupCommands()
 }
 
 target(stopServers: 'Shuts down configured servers') {
 	depends(init)
-	remoteTasks.execShutdownCommands()
+	supervisorTasks.execShutdownCommands()
 }
 
 target(startTest: 'Starts a load test') {
