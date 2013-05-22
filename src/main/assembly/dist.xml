@@ -39,6 +39,7 @@
 				<include>*.cmd</include>
 				<include>conf/*default.*</include>
 			</includes>
+			<lineEnding>crlf</lineEnding>
 			<excludes>
 				<exclude>setenv.cmd</exclude>
 			</excludes>
@@ -49,6 +50,7 @@
 			<includes>
 				<include>*.sh</include>
 			</includes>
+			<lineEnding>lf</lineEnding>
 			<excludes>
 				<exclude>setenv.sh</exclude>
 			</excludes>
