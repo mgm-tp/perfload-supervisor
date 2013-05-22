@@ -117,13 +117,13 @@ class SshUtils {
 				Thread th = Thread.start {
 					while (stdout.available() > 0) {
 						stdout.withReader {
-							it.eachLine { LOG.info(it) }
+							LOG.info(it.readLine())
 						}
 					}
 
 					while (stderr.available() > 0) {
 						stderr.withReader {
-							it.eachLine { LOG.info(it) }
+							LOG.info(it.readLine())
 						}
 					}
 				}
