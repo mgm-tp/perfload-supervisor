@@ -15,9 +15,6 @@
  */
 package com.mgmtp.perfload.supervisor
 
-import org.apache.commons.lang.SystemUtils
-
-
 /**
  * Utility class for common Supervisor-related tasks.
  *
@@ -25,6 +22,7 @@ import org.apache.commons.lang.SystemUtils
  */
 class SupervisorUtils {
 	private static final BUILD_LISTENER = new Slf4jListener()
+	private static final String FILE_SEPARATOR = System.properties['file.separator']
 
 	/**
 	 * Loads the Supervisor configuration for the load test and enhances, i. e. updates, the config objects with
@@ -48,11 +46,11 @@ class SupervisorUtils {
 	private static void enhanceConfig(ConfigObject supervisorConfig) {
 		supervisorConfig.hostConfigs.each { host, params ->
 			if (params.perfmon) {
-				params.perfmonDir = params.perfLoadHome + SystemUtils.FILE_SEPARATOR + "perfmon"
+				params.perfmonDir = params.perfLoadHome + FILE_SEPARATOR + "perfmon"
 			}
 			if (params.client) {
-				params.clientDir = params.perfLoadHome + SystemUtils.FILE_SEPARATOR + "client"
-				params.daemonDir = params.perfLoadHome + SystemUtils.FILE_SEPARATOR + "daemon"
+				params.clientDir = params.perfLoadHome + FILE_SEPARATOR + "client"
+				params.daemonDir = params.perfLoadHome + FILE_SEPARATOR + "daemon"
 			}
 		}
 	}
