@@ -186,7 +186,7 @@ class SshUtils {
 	 * @param file the path to the file on the remote host
 	 */
 	public static void scpDownload(Connection conn, String todir, String file) {
-		LOG.info("Downloading file '{}' from '{}' via SCP...", conn.hostname, file)
+		LOG.info("Downloading file '{}' from '{}' via SCP...", file, conn.hostname)
 
 		SCPClient scpClient = new SCPClient(conn)
 		OutputStream os = null
