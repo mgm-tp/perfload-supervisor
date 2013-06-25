@@ -8,6 +8,10 @@ Copyright 2013 mgm technology partners GmbH
 
 From: 'an unknown organization'
   - ganymed-ssh2  ch.ethz.ganymed:ganymed-ssh2:jar:build251beta1
+  - GPars (http://gpars.codehaus.org) org.codehaus.gpars:gpars:jar:0.12
+    License: The Apache Software License, Version 2.0  (http://www.apache.org/licenses/LICENSE-2.0.txt)
+  - extra166y  org.codehaus.jsr166-mirror:extra166y:jar:1.7.0
+  - jsr166y  org.codehaus.jsr166-mirror:jsr166y:jar:1.7.0
 
 From: 'QOS.ch' (http://www.qos.ch)
   - Logback Classic Module (http://logback.qos.ch) ch.qos.logback:logback-classic:jar:1.0.7

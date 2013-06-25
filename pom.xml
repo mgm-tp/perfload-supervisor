@@ -148,7 +148,6 @@
 			<groupId>org.codehaus.gpars</groupId>
 			<artifactId>gpars</artifactId>
 			<version>0.12</version>
-			<scope>provided</scope>
 		</dependency>
 		<dependency>
 			<groupId>commons-lang</groupId>
