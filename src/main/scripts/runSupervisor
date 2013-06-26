@@ -15,6 +15,12 @@
 # limitations under the License.
 #
 
+ARGS="tasks"
+if [ ! "x$1" = "x" ] ; then
+	ARGS="$@"
+fi
 
 cd `dirname $0`
-./runSupervisor.sh stopDaemons
+[ -f setenv.sh ] && . ./setenv.sh
+
+exec ./gradlew -q -b Supervisor.gradle $ARGS

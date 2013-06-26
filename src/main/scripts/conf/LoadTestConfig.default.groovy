@@ -24,8 +24,8 @@ hostConfigs {
 		perfLoadHome = '/home/myuser/perfload'
 		osfamily = 'unix'
 		perfmon = true
-		startup = ['cd /dir/to/appserver/bin && ./startup.sh']
-		shutdown = ['cd /dir/to/appserver/bin && ./shutdown.sh']
+		startup = [[dir: '/dir/to/appserver/bin', executable: './startup.sh']]
+		shutdown = [[dir: '/dir/to/appserver/bin', executable: './shutdown.sh']]
 		archiving {
 			appServerLogs {
 				dir = '/dir/to/appserver/logs'
@@ -41,8 +41,8 @@ hostConfigs {
 		perfLoadHome = '/home/myuser/perfload'
 		osfamily = 'unix'
 		perfmon = true
-		startup = ['cd /dir/to/appserver/bin && ./startup.sh']
-		shutdown = ['cd /dir/to/appserver/bin && ./shutdown.sh']
+		startup = [[dir: '/dir/to/appserver/bin', executable: './startup.sh']]
+		shutdown = [[dir: '/dir/to/appserver/bin', executable: './shutdown.sh']]
 		archiving {
 			appServerLogs {
 				dir = '/dir/to/appserver/logs'

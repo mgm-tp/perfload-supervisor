@@ -18,7 +18,7 @@
 	<parent>
 		<groupId>com.mgmtp.maven.poms</groupId>
 		<artifactId>mgm-oss-parent</artifactId>
-		<version>3</version>
+		<version>5</version>
 	</parent>
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.mgmtp.perfload</groupId>
@@ -97,7 +97,9 @@
 				<artifactId>maven-license-plugin</artifactId>
 				<configuration>
 					<excludes combine.children="append">
-						<exclude>src/main/conf/*</exclude>
+						<exclude>src/main/scripts/conf/*</exclude>
+						<exclude>src/main/scripts/gradle/**/*</exclude>
+						<exclude>src/main/scripts/gradlew.cmd</exclude>
 					</excludes>
 				</configuration>
 			</plugin>
@@ -119,15 +121,9 @@
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
-			<groupId>org.slf4j</groupId>
-			<artifactId>slf4j-api</artifactId>
-			<version>1.7.5</version>
-		</dependency>
-		<dependency>
 			<groupId>org.codehaus.groovy</groupId>
 			<artifactId>groovy</artifactId>
 			<version>1.8.4</version>
-			<scope>provided</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.codehaus.gpars</groupId>
@@ -140,14 +136,19 @@
 			<version>2.4</version>
 		</dependency>
 		<dependency>
-			<groupId>ch.qos.logback</groupId>
-			<artifactId>logback-classic</artifactId>
-			<version>1.0.13</version>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-lang3</artifactId>
+			<version>3.1</version>
 		</dependency>
 		<dependency>
 			<groupId>ch.ethz.ganymed</groupId>
 			<artifactId>ganymed-ssh2</artifactId>
 			<version>build251beta1</version>
+		</dependency>
+		<dependency>
+			<groupId>org.codehaus.plexus</groupId>
+			<artifactId>plexus-utils</artifactId>
+			<version>3.0.10</version>
 		</dependency>
 	</dependencies>
 	<profiles>

@@ -21,29 +21,65 @@
 package com.mgmtp.perfload.supervisor
 
 unix {
-	cmdStartDaemon = { dir, port -> "cd $dir && ./daemon.sh -port $port" }
-
-	cmdStopDaemon = { dir, port -> "cd $dir && ./daemon.sh -port $port -shutdown" }
-
-	cmdZip = { dir, zip, files -> "cd $dir && zip $zip $files" }
-
-	cmdCleanup = { dir, files -> "cd $dir && rm -f $files" }
-
-	cmdStartPerfmon = { dir -> "cd $dir && ./perfMon.sh -j -n -f perfmon.out" }
-
-	cmdStopPerfmon = { dir -> "cd $dir && ./perfMon.sh -s" }
+	cmdStartDaemon = { dir, port ->
+		map(dir, './daemon', ['-port', "$port"])
+	}
+	cmdStopDaemon = { dir, port ->
+		map(dir, './daemon', [
+			'-port',
+			"$port",
+			'-shutdown'
+		])
+	}
+	cmdZip = { dir, zip, files ->
+		map(dir, 'zip',	[zip, files])
+	}
+	cmdCleanup = { dir, files ->
+		map(dir, 'rm', ['-f', files])
+	}
+	cmdStartPerfmon = { dir ->
+		map(dir, './perfmon', [
+			'-j',
+			'-n',
+			'-f',
+			'perfmon.out'
+		])
+	}
+	cmdStopPerfmon = { dir ->
+		map(dir,'./perfmon', ['-s'])
+	}
 }
 
 windows {
-	cmdStartDaemon = { dir, port -> "cmd.exe /c \"cd $dir && daemon.cmd -port $port\"" }
+	cmdStartDaemon = { dir, port ->
+		map(dir, 'daemon.cmd', ['-port', "$port"])
+	}
+	cmdStopDaemon = { dir, port ->
+		map(dir, 'daemon.cmd', [
+			'-port',
+			"$port",
+			'-shutdown'
+		])
+	}
+	cmdZip = { dir, zip, files ->
+		map(dir, 'zip',	[zip, files])
+	}
+	cmdCleanup = { dir, files ->
+		map(dir, 'del', ['/q', files])
+	}
+	cmdStartPerfmon = { dir ->
+		map(dir, 'perfmon.cmd', [
+			'-j',
+			'-n',
+			'-f',
+			'perfmon.out'
+		])
+	}
+	cmdStopPerfmon = { dir ->
+		map(dir, 'perfmon.cmd', ['-s'])
+	}
+}
 
-	cmdStopDaemon = { dir, port -> "cmd.exe /c \"cd $dir && daemon.cmd -port $port -shutdown\"" }
-
-	cmdZip = { dir, zip, files -> "cmd.exe /c \"cd $dir && zip $zip $files\"" }
-
-	cmdCleanup = { dir, files -> "cmd.exe /c \"cd $dir && del /q $files\"" }
-
-	cmdStartPerfmon = { dir -> "cmd.exe /c \"cd $dir && perfMon.cmd -j -n -f perfmon.out\"" }
-
-	cmdStopPerfmon = { dir -> "cmd.exe /c \"cd $dir && perfMon.cmd -s\"" }
+def map(dir, executable, args) {
+	['dir': dir, 'executable': executable, 'args': args.flatten()]
 }

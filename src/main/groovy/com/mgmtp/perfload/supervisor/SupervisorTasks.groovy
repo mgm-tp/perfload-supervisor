@@ -17,8 +17,7 @@ package com.mgmtp.perfload.supervisor
 
 import groovyx.gpars.GParsExecutorsPool
 
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
+
 
 /**
  * Utility class encapsulating SSH and SCP calls.
@@ -26,8 +25,6 @@ import org.slf4j.LoggerFactory
  * @author rnaegele
  */
 class SupervisorTasks {
-	private final Logger log = LoggerFactory.getLogger(getClass())
-
 	AntBuilder ant
 	ConfigObject loadTestConfig
 	ConfigObject commands
@@ -39,14 +36,14 @@ class SupervisorTasks {
 
 	public void startDaemons() {
 		execDaemonTasks { String osfamily, String dir, String host, int port ->
-			log.info("Starting daemon at '$host:$port'")
+			println "Starting daemon at '$host:$port'"
 			executeCommand(host, commands[osfamily].cmdStartDaemon(dir, port), 3000L)
 		}
 	}
 
 	public void stopDaemons() {
 		execDaemonTasks { String osfamily, String dir, String host, int port ->
-			log.info("Stopping daemon at '$host:$port'")
+			println "Stopping daemon at '$host:$port'"
 			executeCommand(host, commands[osfamily].cmdStopDaemon(dir, port))
 		}
 	}
@@ -75,8 +72,7 @@ class SupervisorTasks {
 
 	public void zipDaemonLogs() {
 		execClientTasks { String host, ConfigObject params ->
-			log.info("Zipping up daemon logs on '$host'...")
-
+			println "Zipping up daemon logs on '$host'..."
 			if ('localhost'.equals(host)) {
 				ant.zip(destfile: "${params.daemonDir}/daemon-logs.zip") {
 					fileset (dir: params.daemonDir) { include(name: '*.log') }
@@ -89,22 +85,21 @@ class SupervisorTasks {
 
 	public void downloadDaemonLogs() {
 		execClientTasks { String host, ConfigObject params ->
-			log.info("Downloading daemon logs from '$host'...")
+			println "Downloading daemon logs from '$host'..."
 			download(host, "$resultsDir/$host", "${params.daemonDir}/daemon-logs.zip")
 		}
 	}
 
 	public void cleanupDaemonFiles() {
 		execClientTasks { String host, ConfigObject params ->
-			log.info("Cleaning up daemon logs on '$host'...")
-			executeCommand(host, commands[params.osfamily].cmdCleanup(params.daemonDir, 'daemon-logs.zip *.log'))
+			println "Cleaning up daemon logs on '$host'..."
+			executeCommand(host, commands[params.osfamily].cmdCleanup(params.daemonDir, ['daemon-logs.zip', '*.log']))
 		}
 	}
 
 	public void zipMeasuringLogs() {
 		execClientTasks { String host, ConfigObject params ->
-			log.info("Zipping up measuring logs on '$host'...")
-
+			println "Zipping up measuring logs on '$host'..."
 			if ('localhost'.equals(host)) {
 				ant.zip(destfile: "${params.clientDir}/measuring-logs.zip") {
 					fileset (dir: params.clientDir) { include(name: '*measuring.log') }
@@ -117,22 +112,24 @@ class SupervisorTasks {
 
 	public void downloadMeasuringLogs() {
 		execClientTasks { String host, ConfigObject params ->
-			log.info("Downloading measuring from '$host'...")
+			println "Downloading measuring from '$host'..."
 			download(host, "$resultsDir/$host", "${params.clientDir}/measuring-logs.zip")
 		}
 	}
 
 	public void cleanupMeasuringFiles() {
 		execClientTasks { String host, ConfigObject params ->
-			log.info("Cleaning up measuring logs on '$host'...")
-			executeCommand(host, commands[params.osfamily].cmdCleanup(params.clientDir, 'measuring-logs.zip *measuring.log'))
+			println "Cleaning up measuring logs on '$host'..."
+			executeCommand(host, commands[params.osfamily].cmdCleanup(params.clientDir, [
+				'measuring-logs.zip',
+				'*measuring.log'
+			]))
 		}
 	}
 
 	public void zipClientLogs() {
 		execClientTasks { String host, ConfigObject params ->
-			log.info("Zipping up client logs on '$host'...")
-
+			println "Zipping up client logs on '$host'..."
 			if ('localhost'.equals(host)) {
 				ant.zip(destfile: "${params.clientDir}/client-logs.zip") {
 					fileset (dir: params.clientDir) { include(name: 'perfload-client*.log') }
@@ -145,15 +142,18 @@ class SupervisorTasks {
 
 	public void downloadClientLogs() {
 		execClientTasks { String host, ConfigObject params ->
-			log.info("Downloading client from '$host'...")
+			println "Downloading client from '$host'..."
 			download(host, "$resultsDir/$host", "${params.clientDir}/client-logs.zip")
 		}
 	}
 
 	public void cleanupClientFiles() {
 		execClientTasks { String host, ConfigObject params ->
-			log.info("Cleaning up client logs on '$host'...")
-			executeCommand(host, commands[params.osfamily].cmdCleanup(params.clientDir, 'client-logs.zip perfload-client*.log'))
+			println "Cleaning up client logs on '$host'..."
+			executeCommand(host, commands[params.osfamily].cmdCleanup(params.clientDir, [
+				'client-logs.zip',
+				'perfload-client*.log'
+			]))
 		}
 	}
 
@@ -178,21 +178,21 @@ class SupervisorTasks {
 
 	public void startPerfmons() {
 		execPerfmonTasks { String host, ConfigObject params ->
-			log.info("Starting perfmon at '$host'")
+			println "Starting perfmon at '$host'"
 			executeCommand(host, commands[params.osfamily].cmdStartPerfmon(params.perfmonDir), 3000L)
 		}
 	}
 
 	public void stopPerfmons() {
 		execPerfmonTasks { String host, ConfigObject params ->
-			log.info("Stopping perfmon at '$host'")
+			println "Stopping perfmon at '$host'"
 			executeCommand(host, commands[params.osfamily].cmdStopPerfmon(params.perfmonDir))
 		}
 	}
 
 	public void zipPerfmonLogs() {
 		execPerfmonTasks { String host, ConfigObject params ->
-			log.info("Zipping up perfmon logs on '$host'...")
+			println "Zipping up perfmon logs on '$host'..."
 
 			if ('localhost'.equals(host)) {
 				ant.zip(destfile: "${params.perfmonDir}/perfmon-logs.zip") {
@@ -202,22 +202,26 @@ class SupervisorTasks {
 					}
 				}
 			} else {
-				executeCommand(host, commands[params.osfamily].cmdZip(params.perfmonDir, 'perfmon-logs.zip', 'perfmon.out *.log'))
+				executeCommand(host, commands[params.osfamily].cmdZip(params.perfmonDir, 'perfmon-logs.zip', ['perfmon.out', '*.log']))
 			}
 		}
 	}
 
 	public void downloadPerfmonLogs() {
 		execPerfmonTasks { String host, ConfigObject params ->
-			log.info("Downloading perfmon logs from '$host'...")
+			println "Downloading perfmon logs from '$host'..."
 			download(host, "$resultsDir/$host", "${params.perfmonDir}/perfmon-logs.zip")
 		}
 	}
 
 	public void cleanupPerfmonFiles() {
 		execPerfmonTasks { String host, ConfigObject params ->
-			log.info("Cleaning up perfmon logs on '$host'...")
-			executeCommand(host, commands[params.osfamily].cmdCleanup(params.perfmonDir, 'perfmon-logs.zip *.log perfmon.out'))
+			println "Cleaning up perfmon logs on '$host'..."
+			executeCommand(host, commands[params.osfamily].cmdCleanup(params.perfmonDir, [
+				'perfmon-logs.zip',
+				'*.log',
+				'perfmon.out'
+			]))
 		}
 	}
 
@@ -247,7 +251,6 @@ class SupervisorTasks {
 		execServerTasks('shutdown')
 	}
 
-
 	/**
 	 * Depending on the task type, executes all configured startup or shutdown commands if applicable.
 	 *
@@ -272,7 +275,7 @@ class SupervisorTasks {
 
 	public void zipConfiguredFiles() {
 		execArchivingTasks { String host, String osfamily, ConfigObject zip ->
-			log.info("Zipping up configured files on '$host'...")
+			println "Zipping up configured files on '$host'..."
 
 			if ('localhost'.equals(host)) {
 				ant.zip(destfile: "${zip.dir}/${zip.zipName}") {
@@ -288,7 +291,7 @@ class SupervisorTasks {
 
 	public void downloadConfiguredFiles() {
 		execArchivingTasks { String host, String osfamily, ConfigObject zip ->
-			log.info("Downloading configured files from '$host'...")
+			println "Downloading configured files from '$host'..."
 			download(host, "$resultsDir/$host", "${zip.dir}/${zip.zipName}")
 		}
 	}
@@ -296,8 +299,8 @@ class SupervisorTasks {
 	public void cleanupConfiguredFiles() {
 		execArchivingTasks { String host, String osfamily, ConfigObject zip ->
 			if (zip.cleanup) {
-				log.info("Cleaning up configured files on '$host'...")
-				executeCommand(host, commands[osfamily].cmdCleanup(zip.dir, "${zip.zipName} ${zip.files}"))
+				println "Cleaning up configured files on '$host'..."
+				executeCommand(host, commands[osfamily].cmdCleanup(zip.dir, "${zip.zipName}", zip.files))
 			}
 		}
 	}
@@ -326,47 +329,23 @@ class SupervisorTasks {
 	/**
 	 * Executes an SSH command.
 	 */
-	private void executeCommand(String host, String command, long timeout = 0L) {
-
+	private void executeCommand(String host, Map command, long timeoutMillis = 0L) {
 		ConfigObject hostConfig = loadTestConfig.hostConfigs[host]
-		Integer exitStatus = null
+		Integer exitStatus
 
 		if ('localhost'.equals(host)) {
-			log.info("Executing command locally: $command")
-			final Process proc = command.execute(System.getenv().collect { "${it.key}=${it.value}" }, new File('.'))
-			Thread outThread = proc.consumeProcessOutputStream(new LogAppendable(error: false))
-			Thread errThread = proc.consumeProcessOutputStream(new LogAppendable(error: true))
-
-			if (timeout > 0L) {
-				// in case of a timeout we may not wait for the process to terminate
-				long end = System.currentTimeMillis() + timeout
-				Thread th = Thread.start {
-					while (System.currentTimeMillis() < end) {
-						try						{
-							proc.exitValue()
-							break
-						} catch (IllegalThreadStateException ex) {
-							sleep 50L
-							// proc is still alive
-						}
-					}
-				}
-				th.join()
-			} else {
-				outThread.join()
-				errThread.join()
-				exitStatus = proc.exitValue()
-			}
+			SupervisorUtils.executeCommandLine(command.executable, command.dir, command.args, timeoutMillis)
 		} else {
-			log.info("Executing SSH command on '$host': $command")
+			def cmd = "cd ${command.dir} && ${command.executable} ${command.args.join(' ')}"
+			println "Executing SSH command on '$host': $cmd"
 			String password = hostConfig.password ? hostConfig.password : null
 			if (hostConfig.pemFile) {
-				exitStatus = SshUtils.executeCommand(host, hostConfig.user, new File(hostConfig.pemFile), password, command, timeout)
+				exitStatus = SshUtils.executeCommand(host, hostConfig.user, new File(hostConfig.pemFile), password, cmd, timeoutMillis)
 			} else {
-				exitStatus = SshUtils.executeCommand(host, hostConfig.user, password, command, timeout)
+				exitStatus = SshUtils.executeCommand(host, hostConfig.user, password, cmd, timeoutMillis)
 			}
+			println "Exit status: $exitStatus"
 		}
-		log.info("Exit status: $exitStatus")
 	}
 
 	/**
@@ -376,10 +355,10 @@ class SupervisorTasks {
 		new File(todir).mkdirs()
 
 		if ('localhost'.equals(host)) {
-			log.info("Copying local file: $file")
+			println "Copying local file: $file"
 			ant.copy(file: file, todir: todir)
 		} else {
-			log.info("Downloading via SCP from '$host:$file'")
+			println "Downloading via SCP from '$host:$file'"
 
 			ConfigObject hostConfig = loadTestConfig.hostConfigs[host]
 			String password = hostConfig.password ? hostConfig.password : null

@@ -9,4 +9,5 @@ startServersBeforeTest = false
 shutdownServersAfterTest = false
 collectResults = true
 createReport = true
-runProjectSpecificTargets = false
+runProjectSpecificTasks = false
+requireTestComment = true

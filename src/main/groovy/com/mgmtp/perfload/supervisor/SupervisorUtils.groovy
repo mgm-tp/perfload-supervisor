@@ -15,10 +15,8 @@
  */
 package com.mgmtp.perfload.supervisor
 
-import groovy.util.ConfigObject
-import groovy.util.ConfigSlurper
-
-import java.io.File
+import org.codehaus.plexus.util.cli.CommandLineUtils
+import org.codehaus.plexus.util.cli.Commandline
 
 /**
  * Utility class for common Supervisor-related tasks.
@@ -26,8 +24,6 @@ import java.io.File
  * @author rnaegele
  */
 class SupervisorUtils {
-	private static final BUILD_LISTENER = new Slf4jListener()
-
 	/**
 	 * Loads the Supervisor configuration for the load test and enhances, i. e. updates, the config objects with
 	 * paths to perfmon and daemon scripts where applicable.
@@ -93,5 +89,46 @@ class SupervisorUtils {
 	public static ConfigObject loadConfig(String tenant, String configFile) {
 		File file = tenant != null ? new File("conf/$tenant/$configFile") : new File("conf/$configFile")
 		new ConfigSlurper().parse(file.getText('UTF-8'))
+	}
+
+	public static void executeCommandLine(final String executable, final String workingDirectory, final List<String> args,
+			final long timeoutMillis = 0L) {
+		Commandline cli = new Commandline()
+		cli.setExecutable(executable)
+		if (workingDirectory) {
+			cli.setWorkingDirectory(workingDirectory)
+		}
+		args?.each { cli.createArg().setValue(it) }
+
+		String cliString = CommandLineUtils.toString(cli.getShellCommandline())
+		println "Executing command-line: $cliString"
+
+		Process proc = cli.execute()
+		Thread outThread = proc.consumeProcessOutputStream(new LogAppendable())
+		Thread errThread = proc.consumeProcessErrorStream(new LogAppendable())
+
+		if (timeoutMillis > 0L) {
+			// in case of a timeout we may not wait for the process to terminate
+			long end = System.currentTimeMillis() + timeoutMillis
+			Thread th = Thread.start {
+				while (System.currentTimeMillis() < end) {
+					try						{
+						proc.exitValue()
+						break
+					} catch (IllegalThreadStateException ex) {
+						sleep 50L
+						// proc is still alive
+					}
+				}
+			}
+			th.join()
+		} else {
+			outThread.join()
+			errThread.join()
+			int exitCode = proc.waitFor()
+			if (exitCode != 0) {
+				throw new IllegalStateException("Error executing commandline. Exit code: $exitCode")
+			}
+		}
 	}
 }

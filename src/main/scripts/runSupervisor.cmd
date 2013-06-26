@@ -18,38 +18,13 @@
 @echo off
 @setlocal
 
+set ARGS=tasks
+if not "%1" == "" set ARGS=%*
+
 cd %~dp0
 
 if exist setenv.cmd call setenv.cmd
 
-set GANT_CMD=gant.bat
-
-if not "%GANT_HOME%" == "" goto gotGantHome
-
-if not "%GROOVY_HOME%" == "" goto gotGroovyHome
-
-:gotGantHome
-set GANT_CMD="%GANT_HOME%\bin\%GANT_CMD%"
-goto endSetEnv
-
-:gotGroovyHome
-if not exist "%GROOVY_HOME%\bin\gant.bat" goto endSetEnv
-
-set GANT_CMD="%GROOVY_HOME%\bin\%GANT_CMD%"
-:endSetEnv
-
-set ARGS=-T
-if not "%1" == "" set ARGS=%*
-
-rem this is also a workaround for
-rem https://jira.codehaus.org/browse/GANT-129
-set JAVA_OPTS=-Xmx256m
-
-set CLASSPATH=scripts;conf;lib\*
-
-@echo %GANT_CMD% -f Supervisor.gant %ARGS%
-call %GANT_CMD% -f Supervisor.gant %ARGS%
-
-pause
+gradlew.cmd -q -b Supervisor.gradle %ARGS%
 
 @endlocal

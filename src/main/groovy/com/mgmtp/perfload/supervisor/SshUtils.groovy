@@ -18,13 +18,12 @@ package com.mgmtp.perfload.supervisor
 import org.apache.commons.io.FileUtils
 import org.apache.commons.io.FilenameUtils
 import org.apache.commons.io.IOUtils
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 
 import ch.ethz.ssh2.ChannelCondition
 import ch.ethz.ssh2.Connection
 import ch.ethz.ssh2.SCPClient
 import ch.ethz.ssh2.Session
+
 
 /**
  * Utility class for executing SSH commands.
@@ -32,8 +31,6 @@ import ch.ethz.ssh2.Session
  * @author rnaegele
  */
 class SshUtils {
-	private static final Logger LOG = LoggerFactory.getLogger(SshUtils.class)
-
 	/**
 	 * Creates an SSH connection, which may be used concurrently by multiple threads.
 	 *
@@ -45,9 +42,9 @@ class SshUtils {
 	public static Connection createConnection(String host, String user, String password) {
 		Connection conn = new Connection(host)
 		conn.connect(null, 10000, 10000)
-		LOG.info("Successfully established SSH connection to '{}'.", host)
+		println "Successfully established SSH connection to '$host'."
 		if (conn.authenticateWithPassword(user, password)) {
-			LOG.info("Successfully authenticated SSH connection to '{}'.", host)
+			println "Successfully authenticated SSH connection to '$host'."
 			return conn
 		}
 		throw new IllegalStateException("SSH connection to '$host' could not be established.")
@@ -66,9 +63,9 @@ class SshUtils {
 	public static Connection createConnection(String host, String user, File pemFile, String password) {
 		Connection conn = new Connection(host)
 		conn.connect(null, 10000, 10000)
-		LOG.info("Successfully established SSH connection to '{}'.", host)
+		println "Successfully established SSH connection to '$host'."
 		if (conn.authenticateWithPublicKey(user, pemFile, password)) {
-			LOG.info("Successfully authenticated SSH connection to '{}' using PEM file: {}", host, pemFile)
+			println "Successfully authenticated SSH connection to '$host' using PEM file: $pemFile"
 			return conn
 		}
 		throw new IllegalStateException("SSH connection to '$host' could not be established.")
@@ -99,7 +96,7 @@ class SshUtils {
 					int conditions = sess.waitForCondition(ChannelCondition.STDOUT_DATA | ChannelCondition.STDERR_DATA | ChannelCondition.EOF, timeout)
 
 					if ((conditions & ChannelCondition.TIMEOUT) != 0) {
-						LOG.warn('SSH connection timed out after {} ms.', timeout)
+						println 'SSH connection timed out after $timeout ms.'
 						break
 					}
 
@@ -116,15 +113,11 @@ class SshUtils {
 
 				Thread th = Thread.start {
 					while (stdout.available() > 0) {
-						stdout.withReader {
-							LOG.info(it.readLine())
-						}
+						stdout.withReader { println it.readLine() }
 					}
 
 					while (stderr.available() > 0) {
-						stderr.withReader {
-							LOG.info(it.readLine())
-						}
+						stderr.withReader { println it.readLine() }
 					}
 				}
 				// We need to obey a possible timeout. Otherwise this might block forever.
@@ -186,7 +179,7 @@ class SshUtils {
 	 * @param file the path to the file on the remote host
 	 */
 	public static void scpDownload(Connection conn, String todir, String file) {
-		LOG.info("Downloading file '{}' from '{}' via SCP...", file, conn.hostname)
+		println "Downloading file '$file' from '${conn.hostname}' via SCP..."
 
 		SCPClient scpClient = new SCPClient(conn)
 		OutputStream os = null
@@ -197,7 +190,8 @@ class SshUtils {
 			scpClient.get(file, os)
 			ok = true
 		} catch (IOException ex) {
-			LOG.error('Error downloading file via SCP: {}', ex)
+			println 'Error downloading file via SCP'
+			ex.printStackTrace()
 		} finally {
 			IOUtils.closeQuietly(os)
 			if (!ok) {

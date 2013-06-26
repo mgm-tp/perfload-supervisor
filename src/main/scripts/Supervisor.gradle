@@ -13,34 +13,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import java.text.SimpleDateFormat
 import java.text.DateFormat
-import org.apache.commons.lang.StringUtils
+import java.text.SimpleDateFormat
+
 import org.apache.commons.io.FilenameUtils
-import com.mgmtp.perfload.supervisor.Slf4jListener
+import org.apache.commons.lang3.StringUtils
+import org.apache.commons.lang3.time.StopWatch
+import org.apache.tools.ant.taskdefs.condition.Os
+import org.codehaus.plexus.util.cli.Commandline;
+
+import com.mgmtp.perfload.supervisor.Commands
 import com.mgmtp.perfload.supervisor.SupervisorTasks
 import com.mgmtp.perfload.supervisor.SupervisorUtils
-import com.mgmtp.perfload.supervisor.Commands
 
 buildscript {
 	dependencies {
-		classpath  fileTree(dir: 'lib')
+		classpath fileTree(dir: 'lib')
 	}
 }
 
+defaultTasks 'runLoadTest'
 
-ant.project.setName('Supervisor')
+def config() {
+	project.ext.commonConfig = SupervisorUtils.loadConfig(null, 'CommonConfig.groovy')
 
-def tenancy()  {
-	ConfigObject commonConfig = SupervisorUtils.loadConfig(null, 'CommonConfig.groovy')
-	// add to binding so we can access the keys directly as variables
-	commonConfig.each { key, value -> binding.setVariable(key, value) }
-
-	if (multiTenancy) {
-		try { tenant } catch (MissingPropertyException ex) {
+	if (commonConfig.multiTenancy) {
+		if (!project.hasProperty('tenant')) {
 			// add tenant to the script's binding, i. e. make it a global variable
-			project.ext.tenant = 'PERFLOAD_TENANT'
-			//tenant = System.getenv('PERFLOAD_TENANT')
+			project.ext.tenant = System.getenv('PERFLOAD_TENANT')
 		}
 		if (!tenant) {
 			throw new IllegalStateException("Multi-tenancy mode is activated but no tenant was specified.");
@@ -48,34 +48,28 @@ def tenancy()  {
 	} else {
 		project.ext.tenant = null
 	}
-}
 
-def config() {
-	ConfigObject supervisorConfig = SupervisorUtils.loadConfig(tenant, 'SupervisorConfig.groovy')
-	// add to binding so we can access the keys directly as variables
-	supervisorConfig.each { key, value -> binding.setVariable(key, value) }
+	project.ext.supervisorConfig = SupervisorUtils.loadConfig(tenant, 'SupervisorConfig.groovy')
+	project.ext.commands = SupervisorUtils.loadConfig(Commands.class)
+	project.ext.loadTestConfig = SupervisorUtils.loadTestConfig(tenant, 'LoadTestConfig.groovy')
+	project.ext.supervisorTasks = new SupervisorTasks(ant: ant, loadTestConfig: loadTestConfig, commands: commands)
 
-	if (runProjectSpecificTargets) {
-		// includes project-specific targets as if they were directly defined in this file
-		File projectTargetsFile = new File("conf/${tenant ? tenant : ''}/ProjectTargets.gant")
-		echo(message: "Including project targets file: $projectTargetsFile")
-		includeTargets << projectTargetsFile
+	if (!supervisorConfig.requireTestComment) {
+		project.ext.testComment = ''
 	}
+	if (supervisorConfig.runProjectSpecificTasks) {
+		// includes project-specific targets as if they were directly defined in this file
+		String projectTasksFile = "conf/${tenant ? tenant + '/' : ''}ProjectTasks.gradle"
+		println "Including project targets file: $projectTasksFile"
 
-	//ConfigObject = supervisorConfig// the config object loaded from 'LoadTestConfig.groovy'
-	//ConfigObject commands // the config object loaded from 'Commands.groovy'
-	//SupervisorTasks supervisorTasks // does all the remote stuff handling (SCP, SSH)
+		apply from: projectTasksFile
+	}
 }
 
-task welcome {
-	tenancy()
-	config()
-
-	description =  'Displays a welcome message showing version information.'
-	
+def welcome() {
 	int len = 65
 	String copyright = StringUtils.center('(c) 2013, mgm technology partners GmbH', len)
-	String welcomeMsg = StringUtils.center('Welcome to perfLoad\'s Supervisor 1.9.0-SNAPSHOT', len)
+	String welcomeMsg = StringUtils.center('Welcome to perfLoad\'s Supervisor ${project.version}', len)
 
 	List list1 = []
 	(len + 2).times { list1 << '*' }
@@ -105,16 +99,14 @@ task welcome {
 	}
 }
 
-task init(dependsOn : welcome, description : 'Initializes the Supervisor loading basic configuration for testplan-independent tasks') {	
-	project.ext.loadTestConfig = SupervisorUtils.loadTestConfig(tenant, 'LoadTestConfig.groovy')
-	project.ext.commands = SupervisorUtils.loadConfig(Commands.class)
-	project.ext.supervisorTasks = new SupervisorTasks(ant: ant, loadTestConfig: loadTestConfig, commands: commands)
+task init(description: 'Initializes the Supervisor loading basic configuration for testplan-independent tasks') << {
+	config()
+	welcome()
 }
 
-task loadTestConfiguration(dependsOn : init, description : 'Loads the test plan possibly prompting for the testplan to be used.') {	
+task loadTestConfiguration(dependsOn: init, description: 'Loads the test plan possibly prompting for the testplan to be used.') << {
 	// if not set via command-line (-Dtestplan=<...>), the user is prompted for the test config to be used
-	try { testplan } catch (MissingPropertyException ex) {
-		// add testplan to the script's binding, i. e. make it a global variable
+	if (!project.hasProperty('testplan')) {
 		project.ext.testplan = promptForTestplan()
 	}
 
@@ -125,316 +117,205 @@ task loadTestConfiguration(dependsOn : init, description : 'Loads the test plan 
 	// prefix the results directory with a timestamp
 	DateFormat df = new SimpleDateFormat('yyyyMMdd-HHmm')
 
-	def testResultsDir = new File(resultsDir, "${tenant ? tenant : ''}/${df.format(new Date())}_${FilenameUtils.getBaseName(testplan)}")
+	def testResultsDir = new File(commonConfig.resultsDir, "${tenant ? tenant + '/' : ''}${df.format(new Date())}_${FilenameUtils.getBaseName(testplan)}")
 
-	project.ext.testResultsDir = testResultsDir.path
-	
-	// set dir as system property and reset logging, so an additional log file is written to the results dir
-	//System.setProperty('testResultsDir', testResultsDir.path)
-	//slf4jListener.resetLogging()
+	project.ext.testResultsDir = testResultsDir
 
-	ant.mkdir(dir: testResultsDir)
+	testResultsDir.mkdirs()
 	supervisorTasks.resultsDir = testResultsDir
-
-	println 'Using testplan ' + testplan
-	println 'Results directory ' + testResultsDir
 
 	// The number of daemons to launch and their ports are read from the testplan
 	// and do not need any extra configuration.
-	Map<String, List<String>> daemons = readDaemonsFromTestplan("$consoleDir/testplans/$testplan")
+	Map<String, List<String>> daemons = readDaemonsFromTestplan("${commonConfig.consoleDir}/testplans/$testplan")
 
 	// add daemon ports to the config
-	SupervisorUtils.enhanceConfigWithDaemonPorts(loadTestConfig, daemons)	
+	SupervisorUtils.enhanceConfigWithDaemonPorts(loadTestConfig, daemons)
 }
 
-task runLoadTest(dependsOn : loadTestConfiguration,	description : 'Runs a load test.') << {	
+task runLoadTest(dependsOn: loadTestConfiguration, description: 'Runs a load test.') << {
 	// if not set via command-line (-DtestComment=<...>), the user is prompted for the test config to be used
-	
-	try { testComment } catch (MissingPropertyException ex) {
-		// add testplan to the script's binding, i. e. make it a global variable
+	if (!project.hasProperty('testComment')) {
 		def console = System.console()
 		project.ext.testComment = console.readLine('\nPlease enter some comment for the test:')
 	}
 
-	if (cleanupBeforeTest) {
-		cleanupAll.execute()
+	def tasks = []
+
+	if (supervisorConfig.cleanupBeforeTest) {
+		tasks << cleanupFiles
 	}
 
-	if (runProjectSpecificTargets) {
-		before()
+	if (supervisorConfig.runProjectSpecificTasks) {
+		tasks << before
 	}
 
-	startPerfmons.execute()
-	stopDaemons.execute()
-	sleep(5000L) // otherwise ports might still bind bound
-	startDaemons.execute()
+	tasks << startPerfmons
+	tasks << restartDaemons
 
-	if (startServersBeforeTest) {
-		stopServers.execute()
-		startServers.execute()
+	if (supervisorConfig.startServersBeforeTest) {
+		tasks << restartServers
 	}
 
-	if (runProjectSpecificTargets) {
-		performSystemCheck()
+	if (supervisorConfig.runProjectSpecificTasks) {
+		tasks << performSystemCheck
 	}
 
-	startTest.execute()
-	
-	if (shutdownServersAfterTest) {
-		stopServers.execute()
+	tasks << startTest
+
+	if (supervisorConfig.shutdownServersAfterTest) {
+		tasks << stopServers
 	}
 
-	stopDaemons.execute()
-	stopPerfmons.execute()
+	tasks << stopDaemons
+	tasks << stopPerfmons
 
-	if (runProjectSpecificTargets) {
-		after()
+	if (supervisorConfig.runProjectSpecificTasks) {
+		tasks << after
 	}
 
-	new File(consoleDir, 'perfload.meta.utf8.props').withWriterAppend('UTF-8') { writer ->
-		new PrintWriter(writer).println("test.comment=${testComment}")
+	task 'writeTestComment' << {
+		new File(commonConfig.consoleDir, 'perfload.meta.utf8.props').withWriterAppend('UTF-8') { writer ->
+			new PrintWriter(writer).println("test.comment=${testComment}")
+		}
+	}
+	tasks << writeTestComment
+
+	if (supervisorConfig.collectResults) {
+		tasks << zipFiles
+		tasks << downloadFiles
 	}
 
-	if (collectResults) {
-		zipAll.execute()
-		downloadAll.execute()
+	if (supervisorConfig.createReport) {
+		tasks <<  runPerfAlyzer
 	}
 
-	if (createReport) {
-		runPerfAlyzer.execute()
+	StopWatch stopWatch = new StopWatch()
+	stopWatch.start()
+
+	tasks.each {
+		it.execute()
 	}
+
+	stopWatch.stop()
+
+	println()
+	println 'LOAD TEST EXECUTION FINISHED'
+	println()
+	println "Total execution time: $stopWatch"
 }
 
-task startTest(type : Exec, dependsOn : loadTestConfiguration, description : 'Starts a load test') << {
-	switch (loadTestConfig.get('osfamily')) {
-		case 'unix':
-			ant.exec(executable: './console.sh', spawn: false, dir: consoleDir, logError: true) {
-				arg(value: '-testplan')
-				arg(value: "testplans/$testplan")
-				arg(value: '-timeout')
-				arg(value: "$loadProfileTestTimeout")
-			}
-			break
-		case 'windows':
-			workingDir consoleDir
-			executable "cmd"
-			args "/c","console.cmd","-testplan","testplans/"+testplan,"-timeout",loadProfileTestTimeout
-			break
-	}
+task startTest(dependsOn: loadTestConfiguration, description: 'Starts a load test') << {
+	SupervisorUtils.executeCommandLine("./console", commonConfig.consoleDir,
+			[
+				'-testplan',
+				"testplans/$testplan",
+				'-timeout',
+				"${supervisorConfig.loadProfileTestTimeout}"
+			])
 }
 
-task abortLoadTest(dependsOn : loadTestConfiguration, description : 'Aborts a load test') {
-	switch (osfamily) {
-		case 'unix':
-			ant.exec(executable: './console.sh', spawn: false, dir: consoleDir, logError: true) {
-				arg(value: '-testplan')
-				arg(value: "testplans/"+testplan)
-				arg(value: '-abort')
-			}
-			break
-		case 'windows':
-			ant.exec(executable: 'cmd.exe', spawn: false, dir: consoleDir, logError: true) {
-				arg(value: '/c')
-				arg(value: "console.cmd -testplan testplans/$testplan -abort")
-			}
-			break
-	}
+task abortLoadTest(dependsOn: loadTestConfiguration, description: 'Aborts a load test') << {
+	SupervisorUtils.executeCommandLine("./console", commonConfig.consoleDir,
+			[
+				'-testplan',
+				"testplans/$testplan",
+				'-abort'
+			])
 }
 
-task runPerfAlyzer(dependsOn : loadTestConfiguration, description : 'Run perfAlyzer to create the report') {
+task runPerfAlyzer(dependsOn: loadTestConfiguration, description: 'Run perfAlyzer to create the report') << {
 	String absoluteResultsDir = testResultsDir.getAbsolutePath()
 
-	switch (osfamily) {
-		case 'unix':
-			ant.exec(executable: './perfalyzer.sh', spawn: false, dir: perfAlyzerDir, logError: true) {
-				arg(value: '-i')
-				arg(value: absoluteResultsDir)
-				if (multiTenancy) {
-					arg(value: '-o')
-					arg(value: "output/${tenant}")
-				}
-			}
-			break
-		case 'windows':
-			ant.exec(executable: 'cmd.exe', spawn: false, dir: perfAlyzerDir, logError: true) {
-				arg(value: '/c')
-				arg(value: "perfalyzer.cmd -i ${absoluteResultsDir}")
-				if (multiTenancy) {
-					arg(value: '-o')
-					arg(value: "output/${tenant}")
-				}
-			}
-			break
-	}
+	SupervisorUtils.executeCommandLine("./perfalyzer", commonConfig.perfAlyzerDir,
+			[
+				'-i',
+				"${absoluteResultsDir}",
+				'-o',
+				"output${tenant ? '/'+ tenant : ''}"
+			])
 }
 
-task startDaemons(dependsOn : loadTestConfiguration, description : 'Starts daemons') << {
+task startDaemons(dependsOn: loadTestConfiguration, description: 'Starts daemons') << { supervisorTasks.startDaemons() }
+
+task stopDaemons(dependsOn: loadTestConfiguration, description: 'Stops daemons') << { supervisorTasks.stopDaemons() }
+
+task restartDaemons(dependsOn: loadTestConfiguration, description: 'Restart daemons') << {
+	supervisorTasks.stopDaemons()
+	sleep 5000L
 	supervisorTasks.startDaemons()
 }
 
-task stopDaemons(dependsOn : loadTestConfiguration, description : 'Stops daemons') << {
-	supervisorTasks.stopDaemons()
-}
+task startPerfmons(dependsOn: init, description: 'Starts perfmons') <<{ supervisorTasks.startPerfmons() }
 
-task startPerfmons(dependsOn : init, description : 'Starts perfmons') <<{
-	supervisorTasks.startPerfmons()
-}
+task stopPerfmons(dependsOn: init, description: 'Stops perfmons') << { supervisorTasks.stopPerfmons() }
 
-task stopPerfmons(dependsOn : init, description : 'Stops perfmons') << {
-	supervisorTasks.stopPerfmons()
-}
-
-task cleanupAll(description : 'Perform all clean-up tasks.') << {		
-	cleanupConsoleFiles.execute()
-	cleanupDaemonFiles.execute()
-	cleanupClientFiles.execute()
-	cleanupMeasuringFiles.execute()
-	cleanupPerfmonFiles.execute()
-	cleanupConfiguredFiles.execute()
-}
-
-task cleanupDaemonFiles(dependsOn : loadTestConfiguration, description : 'Cleans up all daemon logs via SSH') << {
+task cleanupFiles(dependsOn: init, description : 'Perform all clean-up tasks.') << {
+	cleanupConsoleFiles()
 	supervisorTasks.cleanupDaemonFiles()
-}
-
-task cleanupClientFiles(dependsOn : loadTestConfiguration, 	description : 'Cleans up all client logs via SSH') << {
 	supervisorTasks.cleanupClientFiles()
-}
-
-task cleanupMeasuringFiles(dependsOn : loadTestConfiguration, description : 'Cleans up all measuring logs via SSH') << {
 	supervisorTasks.cleanupMeasuringFiles()
-}
-
-task cleanupConfiguredFiles(dependsOn : loadTestConfiguration, description : 'Cleans up all configured files via SSH') << {
+	supervisorTasks.cleanupPerfmonFiles()
 	supervisorTasks.cleanupConfiguredFiles()
 }
 
-task cleanupPerfmonFiles(dependsOn : loadTestConfiguration, description : 'Cleans up all perfmon files via SSH') << {
-	supervisorTasks.cleanupPerfmonFiles()
-}
+task startServers(dependsOn: init, description: 'Starts up configured servers') << { supervisorTasks.execStartupCommands() }
 
-task startServers(dependsOn : init, description : 'Starts up configured servers') << {
+task stopServers(dependsOn: init, description: 'Shuts down configured servers') << { supervisorTasks.execShutdownCommands() }
+
+task restartServers(dependsOn: init, description: 'Restarts configured servers') << {
+	supervisorTasks.execShutdownCommands()
 	supervisorTasks.execStartupCommands()
 }
 
-task stopServers(dependsOn : init, description : 'Shuts down configured servers') << {
-	supervisorTasks.execShutdownCommands()
-}
-
-task zipConsoleFiles(depends : loadTestConfiguration, description : 'Zips all console log files, status file, and the testplan') << {
-	ant.zip(destfile: "${testResultsDir}/console/console-logs.zip") {
-		fileset(dir: "${consoleDir}") {
-			include(name: '*.log')
-			include(name: 'ltStatus.txt')
-			include(name: 'ltThreads.txt')
-			include(name: 'perfload.meta.utf8.props')
-		}
-
-		File testplanFile = new File("${consoleDir}/testplans/${testplan}")
-		fileset(dir: testplanFile.parent, includes: testplanFile.name)
-
-		// for load profile tests, include the events file
-		def config = new XmlSlurper().parse(testplanFile)
-		String eventsFile = config.testplans.testplan.loadProfileConfig
-		if (StringUtils.isNotEmpty(eventsFile)) {
-			fileset(dir: "${testplanFile.parent}/loadprofiles", includes: "${eventsFile}")
-		}
-	}
-}
-
-task cleanupConsoleFiles(depends : loadTestConfiguration, description : 'Cleans up all daemon logs via SSH') << {
-	ant.delete {
-		fileset(dir: "${consoleDir}") {
-			include(name: '*.log')
-			include(name: 'ltStatus.txt')
-			include(name: 'ltThreads.txt')
-			include(name: 'perfload.meta.utf8.props')
-		}
-	}
-}
-
-task zipAll(description : 'Zips all result files via SSH') << {
-	zipConsoleFiles.execute()
-	zipDaemonLogs.execute()
-	zipClientLogs.execute()
-	zipMeasuringLogs.execute()
-	zipPerfmonLogs.execute()
-	zipConfiguredFiles.execute()
-}
-
-task zipDaemonLogs(dependsOn : loadTestConfiguration, description : 'Zips all daemon logs via SSH')  << {
+task zipFiles(description: 'Zips all result files via SSH') << {
+	zipConsoleFiles()
 	supervisorTasks.zipDaemonLogs()
-}
-
-task zipClientLogs(dependsOn : loadTestConfiguration, description : 'Zips all client logs via SSH') << {
 	supervisorTasks.zipClientLogs()
-}
-
-task zipMeasuringLogs(dependsOn : loadTestConfiguration, description : 'Zips all measuring logs via SSH') << {
 	supervisorTasks.zipMeasuringLogs()
-}
-
-task zipConfiguredFiles(dependsOn : loadTestConfiguration, description : 'Zips all configured files via SSH') << {
+	supervisorTasks.zipPerfmonLogs()
 	supervisorTasks.zipConfiguredFiles()
 }
 
-task zipPerfmonLogs(dependsOn : loadTestConfiguration, description : 'Zips all perfmon logs via SSH') << {
-	supervisorTasks.zipPerfmonLogs()
-}
-
-task downloadAll(description : 'Downloads all result files via SCP.') << {	
-	downloadDaemonLogs.execute()
-	downloadClientLogs.execute()
-	downloadMeasuringLogs.execute()
-	downloadPerfmonLogs.execute()
-	downloadConfiguredFiles.execute()
-}
-
-task downloadDaemonLogs(dependsOn : loadTestConfiguration, description : 'Collects all daemon logs via SCP') << {
+task downloadFiles(description: 'Downloads all result files via SCP.') << {
 	supervisorTasks.downloadDaemonLogs()
-}
-
-task downloadClientLogs(dependsOn : loadTestConfiguration, description : 'Collects all client logs via SCP') << {
 	supervisorTasks.downloadClientLogs()
-}
-
-task downloadMeasuringLogs(dependsOn : loadTestConfiguration, description : 'Collects all measuring logs via SCP') << {
 	supervisorTasks.downloadMeasuringLogs()
-}
-
-task downloadConfiguredFiles(dependsOn : loadTestConfiguration, description : 'Downloads all configured zip files via SCP') << {
+	supervisorTasks.downloadPerfmonLogs()
 	supervisorTasks.downloadConfiguredFiles()
 }
-
-task downloadPerfmonLogs(dependsOn : loadTestConfiguration, description : 'Collects all perfmon logs via SCP') << {
-	supervisorTasks.downloadPerfmonLogs()
-}
-
-defaultTasks 'runLoadTest'
 
 /**
  * Prompts the user to select a testplan and returns the selected one.
  */
-private String promptForTestplan() {
-	int i = 1;
+def String promptForTestplan() {
+	int i = 1
 	Map<Integer, String> testplans = [:]
-	new File(consoleDir, "testplans/${tenant ? tenant : ''}").eachFileMatch(~/(?!testjars).*\.xml/, { testplans[i++] = it.name })
+	new File(commonConfig.consoleDir, "testplans/${tenant ? tenant : ''}").eachFileMatch(~/(?!testjars).*\.xml/, { testplans[i++] = it.name })
 
 	String lineSep = System.properties.'line.separator'
 	String prompt = "${lineSep}Please select the testplan you'd like to use:$lineSep"
-	prompt += testplans.collect{ key, value -> "${StringUtils.leftPad(String.valueOf(key), 2)}) $value" }.join(lineSep) + lineSep
+	prompt += testplans.collect{ key, value -> "${StringUtils.leftPad(String.valueOf(key), 3)}) $value" }.join(lineSep) + lineSep
 
-	// displays all configured testplans prefixed by running numbers,
+	// display all configured testplans prefixed by running numbers,
 	// which the user needs to enter in order to select the desired testplan
-	def console = System.console()
-	project.ext.testplanIndex = console.readLine(prompt)
-	return "${tenant ? tenant : ''}/${testplans[testplanIndex as int]}"
+	while (true) {
+		def testplanIndex = System.console().readLine(prompt)
+		try {
+			int index = Integer.parseInt(testplanIndex)
+			if (index <= 0 || index > testplans.size()) {
+				continue
+			}
+		} catch (NumberFormatException ex) {
+			continue
+		}
+		return "${tenant ? tenant + '/' : ''}${testplans[testplanIndex as int]}"
+	}
 }
 
 /**
  * Reads daemon information from the testplan.
  */
-private Map<String, List<Integer>> readDaemonsFromTestplan(String testplanPath) {
+def Map<String, List<Integer>> readDaemonsFromTestplan(String testplanPath) {
 	Map<String, List<Integer>> daemonsMap = [:]
 
 	def config = new XmlSlurper().parse(testplanPath)
@@ -451,4 +332,34 @@ private Map<String, List<Integer>> readDaemonsFromTestplan(String testplanPath) 
 		}
 	}
 	return daemonsMap
+}
+
+def zipConsoleFiles() {
+	File testplanFile = new File("${commonConfig.consoleDir}/testplans/${testplan}")
+	def config = new XmlSlurper().parse(testplanFile)
+	String eventsFile = config.testplans.testplan.loadProfileConfig
+
+	task(zipConsoleFiles, type: Zip) {
+		from(commonConfig.consoleDir) {
+			include '*.log'
+			include 'ltStatus.txt'
+			include 'ltThreads.txt'
+			include 'perfload.meta.utf8.props'
+		}
+		from(testplanFile.parent) { include testplanFile.name }
+		from("${testplanFile.parent}/loadprofiles") { include eventsFile }
+		archiveName = "console-logs.zip"
+		destinationDir = file("${testResultsDir}/console")
+	}.execute()
+}
+
+def cleanupConsoleFiles() {
+	ant.delete {
+		fileset(dir: "${commonConfig.consoleDir}") {
+			include(name: '*.log')
+			include(name: 'ltStatus.txt')
+			include(name: 'ltThreads.txt')
+			include(name: 'perfload.meta.utf8.props')
+		}
+	}
 }
