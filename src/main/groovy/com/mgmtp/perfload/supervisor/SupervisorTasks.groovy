@@ -56,11 +56,9 @@ class SupervisorTasks {
 		// Iterate over all host configs with a client entry
 		GParsExecutorsPool.withPool {
 			loadTestConfig.hostConfigs.eachParallel { String host, ConfigObject params ->
-				if (params.client) {
-					// Start daemons on all configured ports
-					params.daemonPorts.each { int port ->
-						daemonTask(params.osfamily, params.daemonDir, host, port)
-					}
+				if (params.daemonId) {
+					int port = params.daemonPort ?: 20000 //
+					daemonTask(params.osfamily, params.daemonDir, host, port)
 				}
 			}
 		}
@@ -94,36 +92,6 @@ class SupervisorTasks {
 		execClientTasks { String host, ConfigObject params ->
 			println "Cleaning up daemon logs on '$host'..."
 			executeCommand(host, commands[params.osfamily].cmdCleanup(params.daemonDir, ['daemon-logs.zip', '*.log']))
-		}
-	}
-
-	public void zipMeasuringLogs() {
-		execClientTasks { String host, ConfigObject params ->
-			println "Zipping up measuring logs on '$host'..."
-			if ('localhost'.equals(host)) {
-				ant.zip(destfile: "${params.clientDir}/measuring-logs.zip") {
-					fileset (dir: params.clientDir) { include(name: '*measuring.log') }
-				}
-			} else {
-				executeCommand(host, commands[params.osfamily].cmdZip(params.clientDir, 'measuring-logs.zip', '*measuring.log'))
-			}
-		}
-	}
-
-	public void downloadMeasuringLogs() {
-		execClientTasks { String host, ConfigObject params ->
-			println "Downloading measuring from '$host'..."
-			download(host, "$resultsDir/$host", "${params.clientDir}/measuring-logs.zip")
-		}
-	}
-
-	public void cleanupMeasuringFiles() {
-		execClientTasks { String host, ConfigObject params ->
-			println "Cleaning up measuring logs on '$host'..."
-			executeCommand(host, commands[params.osfamily].cmdCleanup(params.clientDir, [
-				'measuring-logs.zip',
-				'*measuring.log'
-			]))
 		}
 	}
 
@@ -165,7 +133,7 @@ class SupervisorTasks {
 		GParsExecutorsPool.withPool {
 			// Iterate over all host configs with a client entry
 			loadTestConfig.hostConfigs.eachParallel { String host, ConfigObject params ->
-				if (params.client) {
+				if (params.daemonId) {
 					clientTask(host, params)
 				}
 			}
@@ -311,7 +279,7 @@ class SupervisorTasks {
 	 */
 	private void execArchivingTasks(Closure archivingTask) {
 		GParsExecutorsPool.withPool {
-			// Iterate over all host configs with a client entry
+			// Iterate over all host configs with an archiving entry
 			loadTestConfig.hostConfigs.eachParallel { String host, ConfigObject params ->
 				if (params.archiving) {
 					params.archiving.each { key, zip ->

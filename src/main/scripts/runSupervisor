@@ -23,4 +23,6 @@ fi
 cd `dirname $0`
 [ -f setenv.sh ] && . ./setenv.sh
 
+echo "Initializing..."
+
 exec ./gradlew -q -b Supervisor.gradle $ARGS

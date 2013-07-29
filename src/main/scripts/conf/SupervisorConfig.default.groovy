@@ -1,8 +1,7 @@
 
 /**
- * Configuration template for Supervisor.gant
+ * Configuration template for Supervisor.gradle
  */
-
 loadProfileTestTimeout = 10
 cleanupBeforeTest = true
 startServersBeforeTest = false

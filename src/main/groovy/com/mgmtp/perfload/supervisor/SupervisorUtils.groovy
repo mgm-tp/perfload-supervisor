@@ -48,23 +48,9 @@ class SupervisorUtils {
 			if (params.perfmon) {
 				params.perfmonDir = params.perfLoadHome + "/perfmon"
 			}
-			if (params.client) {
+			if (params.daemonId) {
 				params.clientDir = params.perfLoadHome + "/client"
 				params.daemonDir = params.perfLoadHome + "/daemon"
-			}
-		}
-	}
-
-	/**
-	 * Enhances the configuration adding daemon ports where applicable.
-	 *
-	 * @param supervisorConfig the config object
-	 * @param daemons a map of lists of ports for each daemon host
-	 */
-	public static void enhanceConfigWithDaemonPorts(ConfigObject supervisorConfig, Map<String, List<Integer>> daemons) {
-		supervisorConfig.hostConfigs.each { host, params ->
-			if (params.client) {
-				params.daemonPorts = daemons[host]
 			}
 		}
 	}
@@ -91,6 +77,17 @@ class SupervisorUtils {
 		new ConfigSlurper().parse(file.getText('UTF-8'))
 	}
 
+	public static List readDaemonsFromConfig(ConfigObject loadTestConfig) {
+		List daemons = loadTestConfig.hostConfigs.findAll { it.value.daemonId }.collect { String host, ConfigObject params ->
+			def daemon = host
+			def port = params.daemonPort
+			if (port) {
+				daemon = "$daemon:$port"
+			}
+			return daemon
+		}
+		return daemons
+	}
 	public static void executeCommandLine(final String executable, final String workingDirectory, final List<String> args,
 			final long timeoutMillis = 0L) {
 		Commandline cli = new Commandline()

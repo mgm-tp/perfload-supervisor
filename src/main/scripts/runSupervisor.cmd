@@ -25,6 +25,10 @@ cd %~dp0
 
 if exist setenv.cmd call setenv.cmd
 
-gradlew.cmd -q -b Supervisor.gradle %ARGS%
+@echo Initializing...
+
+call gradlew.cmd -q -b Supervisor.gradle %ARGS%
+
+pause
 
 @endlocal

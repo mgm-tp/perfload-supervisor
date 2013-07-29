@@ -7,7 +7,7 @@ hostConfigs {
 		password = 'mypass'
 		perfLoadHome = '/home/myuser/perfload'
 		osfamily = 'unix'
-		client = true
+		daemonId = 1
 		perfmon = true
 	}
 	myClientHost2 {
@@ -15,7 +15,7 @@ hostConfigs {
 		password = 'mypass'
 		perfLoadHome = '/home/myuser/perfload'
 		osfamily = 'unix'
-		client = true
+		daemonId = 2
 		perfmon = true
 	}
 	myAppServerHost1 {
