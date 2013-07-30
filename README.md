@@ -1,6 +1,6 @@
 # perfLoad Supervisor
 
-**Gant script for controlling load test execution.**
+**Gradle script for controlling load test execution.**
 
 ---
 
