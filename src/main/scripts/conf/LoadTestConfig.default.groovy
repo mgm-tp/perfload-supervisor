@@ -1,6 +1,4 @@
 
-// Host Configurations
-
 hostConfigs {
 	myClientHost1 {
 		user = 'myuser'
@@ -24,8 +22,8 @@ hostConfigs {
 		perfLoadHome = '/home/myuser/perfload'
 		osfamily = 'unix'
 		perfmon = true
-		startup = [[dir: '/dir/to/appserver/bin', executable: './startup.sh']]
-		shutdown = [[dir: '/dir/to/appserver/bin', executable: './shutdown.sh']]
+		startup = [[dir: '/dir/to/appserver/bin', executable: './myapp.sh'], args: ['start']]
+		shutdown = [[dir: '/dir/to/appserver/bin', executable: './myapp.sh', args: ['shutdown']]
 		archiving {
 			appServerLogs {
 				dir = '/dir/to/appserver/logs'
@@ -41,8 +39,8 @@ hostConfigs {
 		perfLoadHome = '/home/myuser/perfload'
 		osfamily = 'unix'
 		perfmon = true
-		startup = [[dir: '/dir/to/appserver/bin', executable: './startup.sh']]
-		shutdown = [[dir: '/dir/to/appserver/bin', executable: './shutdown.sh']]
+		startup = [[dir: '/dir/to/appserver/bin', executable: './myapp.sh'], args: ['start']]
+		shutdown = [[dir: '/dir/to/appserver/bin', executable: './myapp.sh', args: ['shutdown']]
 		archiving {
 			appServerLogs {
 				dir = '/dir/to/appserver/logs'

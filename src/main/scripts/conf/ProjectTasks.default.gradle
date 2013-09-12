@@ -1,10 +1,6 @@
 
-// custom properties file, if necessary
-// ant.property(file: 'ProjectTargets.properties')
-
 // custom config object, if necessary
-// myProjectConfig = SupervisorUtils.loadConfig(ProjectTargetsConfig.class)
-
+// myProjectConfig = SupervisorUtils.loadConfig(tenant, 'ProjectTasksconfig.groovy')
 
 task before(description: 'Executes project-specific tasks before the load test') << {
 
@@ -14,9 +10,8 @@ task after(description: 'Executes project-specific tasks after the load test') <
 
 }
 
-task performSystemCheck(description: 'Checks that everything is correctly up and running') << {
+task performSystemCheck(description: 'Checks that everything is up and running') << {
 	/*
-	 * In order to fail this target, a non-zero exit value must be returned, e. g.:
-	 * -1
+	 * In order to fail this task, e. g. ant.fail() may be called
 	 */
 }
