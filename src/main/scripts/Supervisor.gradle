@@ -92,7 +92,7 @@ def welcome() {
 	if (tenant) {
 		println "Running in multi-tenancy mode. Tenant: $tenant."
 	} else {
-		println 'No tentant specified. Running in single-tenancy mode.'
+		println 'No tenant specified. Running in single-tenancy mode.'
 	}
 }
 
