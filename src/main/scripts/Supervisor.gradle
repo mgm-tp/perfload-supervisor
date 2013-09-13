@@ -299,7 +299,14 @@ def String promptForTestplan() {
 		} catch (NumberFormatException ex) {
 			continue
 		}
-		return "${tenant ? tenant + '/' : ''}${testplans[testplanIndex as int]}"
+		
+		def selectedTestplan = testplans[testplanIndex as int]
+		
+		println()
+		println "Selected testplan: '$selectedTestplan'..."
+		println()
+		
+		return "${tenant ? tenant + '/' : ''}$selectedTestplan"
 	}
 }
 
