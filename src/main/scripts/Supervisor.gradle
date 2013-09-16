@@ -101,7 +101,7 @@ task init(description: 'Initializes the Supervisor loading basic configuration f
 	welcome()
 }
 
-task loadTestConfiguration(dependsOn: init, description: 'Loads the test plan possibly prompting for the testplan to be used.') << {
+task loadTestplan(dependsOn: init, description: 'Loads the test plan possibly prompting for the testplan to be used.') << {
 	// if not set via command-line (-Dtestplan=<...>), the user is prompted for the test config to be used
 	if (!project.hasProperty('testplan')) {
 		project.ext.testplan = promptForTestplan()
@@ -122,7 +122,7 @@ task loadTestConfiguration(dependsOn: init, description: 'Loads the test plan po
 	supervisorTasks.resultsDir = testResultsDir
 }
 
-task runLoadTest(dependsOn: loadTestConfiguration, description: 'Runs a load test.') << {
+task runLoadTest(dependsOn: loadTestplan, description: 'Runs a load test.') << {
 	// if not set via command-line (-DtestComment=<...>), the user is prompted for the test config to be used
 	if (!project.hasProperty('testComment')) {
 		def console = System.console()
@@ -142,8 +142,8 @@ task runLoadTest(dependsOn: loadTestConfiguration, description: 'Runs a load tes
 	tasks << startPerfmons
 	tasks << restartDaemons
 
-	if (supervisorConfig.startServersBeforeTest) {
-		tasks << restartServers
+	if (supervisorConfig.executeStartupCommands) {
+		tasks << executeStartupCommands
 	}
 
 	if (supervisorConfig.runProjectSpecificTasks) {
@@ -152,8 +152,8 @@ task runLoadTest(dependsOn: loadTestConfiguration, description: 'Runs a load tes
 
 	tasks << startTest
 
-	if (supervisorConfig.shutdownServersAfterTest) {
-		tasks << stopServers
+	if (supervisorConfig.executeShutdownCommands) {
+		tasks << executeShutdownCommands
 	}
 
 	tasks << stopDaemons
@@ -192,7 +192,7 @@ task runLoadTest(dependsOn: loadTestConfiguration, description: 'Runs a load tes
 	println "Total execution time: $stopWatch"
 }
 
-task startTest(dependsOn: loadTestConfiguration, description: 'Starts a load test') << {
+task startTest(dependsOn: loadTestplan, description: 'Starts a load test') << {
 	List daemons = SupervisorUtils.readDaemonsFromConfig(loadTestConfig)
 	SupervisorUtils.executeCommandLine("./console", consoleDir,
 			[
@@ -205,7 +205,7 @@ task startTest(dependsOn: loadTestConfiguration, description: 'Starts a load tes
 			].flatten())
 }
 
-task abortLoadTest(dependsOn: loadTestConfiguration, description: 'Aborts a load test') << {
+task abortLoadTest(dependsOn: loadTestplan, description: 'Aborts a load test') << {
 	List daemons = SupervisorUtils.readDaemonsFromConfig(loadTestConfig)
 	SupervisorUtils.executeCommandLine("./console", consoleDir,
 			[
@@ -217,7 +217,7 @@ task abortLoadTest(dependsOn: loadTestConfiguration, description: 'Aborts a load
 			].flatten())
 }
 
-task runPerfAlyzer(dependsOn: loadTestConfiguration, description: 'Run perfAlyzer to create the report') << {
+task runPerfAlyzer(dependsOn: loadTestplan, description: 'Run perfAlyzer to create the report') << {
 	String absoluteResultsDir = testResultsDir.getAbsolutePath()
 
 	SupervisorUtils.executeCommandLine("./perfalyzer", perfAlyzerDir,
@@ -251,14 +251,9 @@ task cleanupFiles(dependsOn: init, description : 'Perform all clean-up tasks.') 
 	supervisorTasks.cleanupConfiguredFiles()
 }
 
-task startServers(dependsOn: init, description: 'Starts up configured servers') << { supervisorTasks.execStartupCommands() }
+task executeStartupCommands(dependsOn: init, description: 'Executes configured startup commands') << { supervisorTasks.execStartupCommands() }
 
-task stopServers(dependsOn: init, description: 'Shuts down configured servers') << { supervisorTasks.execShutdownCommands() }
-
-task restartServers(dependsOn: init, description: 'Restarts configured servers') << {
-	supervisorTasks.execShutdownCommands()
-	supervisorTasks.execStartupCommands()
-}
+task executeShutdownCommands(dependsOn: init, description: 'Executes configured shutdown commands') << { supervisorTasks.execShutdownCommands() }
 
 task zipFiles(description: 'Zips all result files via SSH') << {
 	zipConsoleFiles()

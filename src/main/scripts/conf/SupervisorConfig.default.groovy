@@ -4,8 +4,8 @@
  */
 loadProfileTestTimeout = 10
 cleanupBeforeTest = true
-startServersBeforeTest = false
-shutdownServersAfterTest = false
+executeStartupCommands = false
+executeShutdownCommands = false
 collectResults = true
 createReport = true
 runProjectSpecificTasks = false
