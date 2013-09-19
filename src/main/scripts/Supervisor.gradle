@@ -199,7 +199,7 @@ task startTest(dependsOn: loadTestplan, description: 'Starts a load test') << {
 				'-testplan',
 				testplan,
 				'-daemons',
-				daemons,
+				daemons.join(','),
 				'-timeout',
 				"${supervisorConfig.loadProfileTestTimeout}"
 			].flatten())
