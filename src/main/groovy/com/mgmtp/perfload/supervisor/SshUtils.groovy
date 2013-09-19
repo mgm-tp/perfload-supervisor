@@ -96,7 +96,7 @@ class SshUtils {
 					int conditions = sess.waitForCondition(ChannelCondition.STDOUT_DATA | ChannelCondition.STDERR_DATA | ChannelCondition.EOF, timeout)
 
 					if ((conditions & ChannelCondition.TIMEOUT) != 0) {
-						println 'SSH connection timed out after $timeout ms.'
+						println "SSH connection timed out after $timeout ms."
 						break
 					}
 
