@@ -7,8 +7,6 @@ mgm perfLoad Supervisor
 Copyright 2013 mgm technology partners GmbH
 
 From: 'an unknown organization'
-  - AntLR Parser Generator (http://www.antlr.org/) antlr:antlr:jar:2.7.7
-    License: BSD License  (http://www.antlr.org/license.html)
   - ganymed-ssh2  ch.ethz.ganymed:ganymed-ssh2:jar:build251beta1
   - GPars (http://gpars.codehaus.org) org.codehaus.gpars:gpars:jar:1.0.0
     License: The Apache Software License, Version 2.0  (http://www.apache.org/licenses/LICENSE-2.0.txt)
@@ -18,25 +16,10 @@ From: 'Codehaus' (http://www.codehaus.org/)
   - Plexus Common Utilities (http://plexus.codehaus.org/plexus-utils) org.codehaus.plexus:plexus-utils:jar:3.0.10
     License: The Apache Software License, Version 2.0  (http://www.apache.org/licenses/LICENSE-2.0.txt)
 
-From: 'ObjectWeb' (http://www.objectweb.org/)
-  - ASM Core (http://asm.objectweb.org/asm/) asm:asm:jar:3.2
-    License: BSD  (http://asm.objectweb.org/license.html)
-  - ASM Analysis (http://asm.objectweb.org/asm-analysis/) asm:asm-analysis:jar:3.2
-    License: BSD  (http://asm.objectweb.org/license.html)
-  - ASM Commons (http://asm.objectweb.org/asm-commons/) asm:asm-commons:jar:3.2
-    License: BSD  (http://asm.objectweb.org/license.html)
-  - ASM Tree (http://asm.objectweb.org/asm-tree/) asm:asm-tree:jar:3.2
-    License: BSD  (http://asm.objectweb.org/license.html)
-  - ASM Util (http://asm.objectweb.org/asm-util/) asm:asm-util:jar:3.2
-    License: BSD  (http://asm.objectweb.org/license.html)
-
 From: 'The Apache Software Foundation' (http://www.apache.org/)
   - Commons IO (http://commons.apache.org/io/) commons-io:commons-io:jar:2.4
     License: The Apache Software License, Version 2.0  (http://www.apache.org/licenses/LICENSE-2.0.txt)
   - Commons Lang (http://commons.apache.org/lang/) org.apache.commons:commons-lang3:jar:3.1
     License: The Apache Software License, Version 2.0  (http://www.apache.org/licenses/LICENSE-2.0.txt)
-
-From: 'The Codehaus' (http://codehaus.org)
-  - Groovy (http://groovy.codehaus.org/) org.codehaus.groovy:groovy:jar:1.8.4
 
 
