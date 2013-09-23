@@ -117,7 +117,9 @@ task loadTestplan(dependsOn: init, description: 'Loads the test plan possibly pr
 	def testResultsDir = new File(resultsDir, "${tenant ? tenant + '/' : ''}${df.format(new Date())}_${FilenameUtils.getBaseName(testplan)}")
 
 	project.ext.testResultsDir = testResultsDir
-
+	// sys prop necessary for logging to file, used in init.gradle
+	System.setProperty('testResultsDir', testResultsDir.path)
+			
 	testResultsDir.mkdirs()
 	supervisorTasks.resultsDir = testResultsDir
 }

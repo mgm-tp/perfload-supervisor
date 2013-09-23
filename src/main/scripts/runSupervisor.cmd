@@ -27,7 +27,7 @@ if exist setenv.cmd call setenv.cmd
 
 @echo Initializing...
 
-call gradlew.cmd -q -b Supervisor.gradle %ARGS%
+call gradlew.cmd -q -I init.gradle -b Supervisor.gradle %ARGS%
 
 pause
 

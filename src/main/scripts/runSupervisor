@@ -25,4 +25,4 @@ cd `dirname $0`
 
 echo "Initializing..."
 
-exec ./gradlew -q -b Supervisor.gradle $ARGS
+exec ./gradlew -q -I init.gradle -b Supervisor.gradle $ARGS

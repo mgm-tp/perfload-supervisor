@@ -74,6 +74,10 @@
 			<filtered>true</filtered>
 		</file>
 		<file>
+			<source>${basedir}/src/main/scripts/init.gradle</source>
+			<outputDirectory>/</outputDirectory>
+		</file>
+		<file>
 			<source>${basedir}/src/main/scripts/gradlew</source>
 			<outputDirectory>/</outputDirectory>
 			<fileMode>775</fileMode>
