@@ -1,6 +1,11 @@
+buildscript {
+	dependencies {
+		classpath fileTree(dir: 'lib')
+	}
+}
 
 // custom config object, if necessary
-// myProjectConfig = SupervisorUtils.loadConfig(tenant, 'ProjectTasksconfig.groovy')
+// myProjectConfig = SupervisorUtils.loadConfig(tenant, 'ProjectTasksConfig.groovy')
 
 task before(description: 'Executes project-specific tasks before the load test') << {
 
