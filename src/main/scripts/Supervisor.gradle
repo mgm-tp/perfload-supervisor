@@ -96,12 +96,12 @@ def welcome() {
 	}
 }
 
-task init(description: 'Initializes the Supervisor loading basic configuration for testplan-independent tasks') << {
+task init(description: 'Initializes the Supervisor loading basic configuration for testplan-independent tasks') {
 	config()
 	welcome()
 }
 
-task loadTestplan(dependsOn: init, description: 'Loads the test plan possibly prompting for the testplan to be used.') << {
+task loadTestplan(description: 'Loads the test plan possibly prompting for the testplan to be used.') << {
 	// if not set via command-line (-Dtestplan=<...>), the user is prompted for the test config to be used
 	if (!project.hasProperty('testplan')) {
 		project.ext.testplan = promptForTestplan()
@@ -119,7 +119,7 @@ task loadTestplan(dependsOn: init, description: 'Loads the test plan possibly pr
 	project.ext.testResultsDir = testResultsDir
 	// sys prop necessary for logging to file, used in init.gradle
 	System.setProperty('testResultsDir', testResultsDir.path)
-			
+
 	testResultsDir.mkdirs()
 	supervisorTasks.resultsDir = testResultsDir
 }
@@ -231,21 +231,21 @@ task runPerfAlyzer(dependsOn: loadTestplan, description: 'Run perfAlyzer to crea
 			])
 }
 
-task startDaemons(dependsOn: init, description: 'Starts daemons') << { supervisorTasks.startDaemons() }
+task startDaemons(description: 'Starts daemons') << { supervisorTasks.startDaemons() }
 
-task stopDaemons(dependsOn: init, description: 'Stops daemons') << { supervisorTasks.stopDaemons() }
+task stopDaemons(description: 'Stops daemons') << { supervisorTasks.stopDaemons() }
 
-task restartDaemons(dependsOn: init, description: 'Restart daemons') << {
+task restartDaemons(description: 'Restart daemons') << {
 	supervisorTasks.stopDaemons()
 	sleep 5000L
 	supervisorTasks.startDaemons()
 }
 
-task startPerfmons(dependsOn: init, description: 'Starts perfmons') << { supervisorTasks.startPerfmons() }
+task startPerfmons(description: 'Starts perfmons') << { supervisorTasks.startPerfmons() }
 
-task stopPerfmons(dependsOn: init, description: 'Stops perfmons') << { supervisorTasks.stopPerfmons() }
+task stopPerfmons(description: 'Stops perfmons') << { supervisorTasks.stopPerfmons() }
 
-task cleanupFiles(dependsOn: init, description : 'Perform all clean-up tasks.') << {
+task cleanupFiles(description : 'Perform all clean-up tasks.') << {
 	cleanupConsoleFiles()
 	supervisorTasks.cleanupDaemonFiles()
 	supervisorTasks.cleanupClientFiles()
@@ -253,11 +253,11 @@ task cleanupFiles(dependsOn: init, description : 'Perform all clean-up tasks.') 
 	supervisorTasks.cleanupConfiguredFiles()
 }
 
-task executeStartupCommands(dependsOn: init, description: 'Executes configured startup commands') << { supervisorTasks.execStartupCommands() }
+task executeStartupCommands(description: 'Executes configured startup commands') << { supervisorTasks.execStartupCommands() }
 
-task executeShutdownCommands(dependsOn: init, description: 'Executes configured shutdown commands') << { supervisorTasks.execShutdownCommands() }
+task executeShutdownCommands(description: 'Executes configured shutdown commands') << { supervisorTasks.execShutdownCommands() }
 
-task zipFiles(dependsOn: init, description: 'Zips all result files via SSH') << {
+task zipFiles(description: 'Zips all result files via SSH') << {
 	zipConsoleFiles()
 	supervisorTasks.zipDaemonLogs()
 	supervisorTasks.zipClientLogs()
@@ -265,7 +265,7 @@ task zipFiles(dependsOn: init, description: 'Zips all result files via SSH') << 
 	supervisorTasks.zipConfiguredFiles()
 }
 
-task downloadFiles(dependsOn: init, description: 'Downloads all result files via SCP.') << {
+task downloadFiles(description: 'Downloads all result files via SCP.') << {
 	supervisorTasks.downloadDaemonLogs()
 	supervisorTasks.downloadClientLogs()
 	supervisorTasks.downloadPerfmonLogs()
@@ -296,13 +296,13 @@ def String promptForTestplan() {
 		} catch (NumberFormatException ex) {
 			continue
 		}
-		
+
 		def selectedTestplan = testplans[testplanIndex as int]
-		
+
 		println()
 		println "Selected testplan: '$selectedTestplan'..."
 		println()
-		
+
 		return "${tenant ? tenant + '/' : ''}$selectedTestplan"
 	}
 }
