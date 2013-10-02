@@ -268,7 +268,7 @@ class SupervisorTasks {
 		execArchivingTasks { String host, String osfamily, ConfigObject zip ->
 			if (zip.cleanup) {
 				println "Cleaning up configured files on '$host'..."
-				executeCommand(host, commands[osfamily].cmdCleanup(zip.dir, "${zip.zipName}", zip.files))
+				executeCommand(host, commands[osfamily].cmdCleanup(zip.dir, "${zip.zipName} ${zip.files}"))
 			}
 		}
 	}
