@@ -15,6 +15,8 @@
  */
 package com.mgmtp.perfload.supervisor
 
+import org.apache.commons.lang3.StringUtils
+
 
 /**
  * @author rnaegele
@@ -23,16 +25,15 @@ class LogAppendable implements Appendable {
 
 	@Override
 	public Appendable append(CharSequence csq) throws IOException {
-		println "\t$csq"
+		if (StringUtils.isNotBlank(csq)) {
+			println "\t$csq"
+		}
 		return this
 	}
 
 	@Override
 	public Appendable append(CharSequence csq, int start, int end) throws IOException {
-		if (csq == null) {
-			return this
-		}
-		return append(csq.subSequence(start, end))
+		return append(csq?.subSequence(start, end))
 	}
 
 	@Override
