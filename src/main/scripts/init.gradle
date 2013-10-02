@@ -20,19 +20,20 @@ import java.nio.channels.FileLock
 import java.nio.channels.WritableByteChannel
 import java.nio.charset.Charset
 import java.nio.charset.CharsetEncoder
+import java.text.SimpleDateFormat
 
-apply plugin: LoggingPlugin
+apply plugin: InitPlugin
 
-class LoggingPlugin implements Plugin<Gradle> {
+class InitPlugin implements Plugin<Gradle> {
 	void apply(Gradle gradle) {
 		gradle.useLogger(new LoggingListener())
 	}
 }
 
 class LoggingListener implements StandardOutputListener {
-	Project project 
-	
-	void onOutput(CharSequence output) {	
+	Project project
+
+	void onOutput(CharSequence output) {
 		writeWithLock(output)
 	}
 
@@ -41,7 +42,7 @@ class LoggingListener implements StandardOutputListener {
 			// Only start writing log file when results dirctory is set
 			return
 		}
-		
+
 		File dir = new File(System.properties['testResultsDir'], 'supervisor')
 		dir.mkdirs()
 		FileOutputStream os = new FileOutputStream(new File(dir, 'supervisor.log'), true)
@@ -61,10 +62,11 @@ class LoggingListener implements StandardOutputListener {
 		}
 	}
 
-	private void writeLineToChannel(final WritableByteChannel destChannel, final String line)
-			throws IOException {
+	private void writeLineToChannel(final WritableByteChannel destChannel, final String line) throws IOException {
+		String date = new SimpleDateFormat('yyyy-MM-dd HH:mm:ss').format(System.currentTimeMillis())
+		String threadName = Thread.currentThread().getName()
 		String tmpLine = line.endsWith(System.properties['line.separator']) ? line : line + System.properties['line.separator']
-		CharBuffer buffer = CharBuffer.wrap(tmpLine)
+		CharBuffer buffer = CharBuffer.wrap("$date [$threadName] $tmpLine")
 		CharsetEncoder encoder = Charset.forName('UTF-8').newEncoder()
 		ByteBuffer bb = encoder.encode(buffer)
 		writeToChannel(destChannel, bb)
