@@ -40,9 +40,7 @@ class SshUtils {
 	 * @return the connection
 	 */
 	public static Connection createConnection(String host, String user, String password) {
-		Connection conn = new Connection(host)
-		conn.connect(null, 10000, 10000)
-		println "Successfully established SSH connection to '$host'."
+		Connection conn = connect(host)
 		if (conn.authenticateWithPassword(user, password)) {
 			println "Successfully authenticated SSH connection to '$host'."
 			return conn
@@ -61,14 +59,25 @@ class SshUtils {
 	 * @return the connection
 	 */
 	public static Connection createConnection(String host, String user, File pemFile, String password) {
-		Connection conn = new Connection(host)
-		conn.connect(null, 10000, 10000)
-		println "Successfully established SSH connection to '$host'."
+		Connection conn = connect(host)
 		if (conn.authenticateWithPublicKey(user, pemFile, password)) {
 			println "Successfully authenticated SSH connection to '$host' using PEM file: $pemFile"
 			return conn
 		}
 		throw new IllegalStateException("SSH connection to '$host' could not be established.")
+	}
+
+	private static Connection connect(String host) {
+		try {
+			Connection conn = new Connection(host)
+			conn.connect(null, 10000, 10000)
+			println "Successfully established SSH connection to '$host'."
+			return conn
+		} catch (SocketTimeoutException ex) {
+			throw new RuntimeException("Timeout connecting to host '$host'", ex)
+		} catch (IOException ex) {
+			throw new RuntimeException("Error connecting to host '$host'", ex)
+		}
 	}
 
 	/**
