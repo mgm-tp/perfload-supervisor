@@ -78,7 +78,7 @@ class SupervisorUtils {
 	}
 
 	public static List readDaemonsFromConfig(ConfigObject loadTestConfig) {
-		List daemons = loadTestConfig.hostConfigs.findAll { it.value.daemonId }.collect { String host, ConfigObject params ->
+		return loadTestConfig.hostConfigs.findAll { it.value.daemonId }.sort().collect { String host, ConfigObject params ->
 			def daemon = host
 			def port = params.daemonPort
 			if (port) {
@@ -86,8 +86,8 @@ class SupervisorUtils {
 			}
 			return daemon
 		}
-		return daemons
 	}
+
 	public static void executeCommandLine(final String executable, final String workingDirectory, final List<String> args,
 			final long timeoutMillis = 0L) {
 		Commandline cli = new Commandline()
