@@ -1,2 +1,17 @@
+*.groovy text
+*.java text
+*.xml text
+*.gradle text
+LICENSE text
+NOTICE text
+*.md text
 *.cmd eol=crlf
 *.sh eol=lf
+abortLoadTest eol=lf
+executeShutdownCommands eol=lf
+executeStartupCommands eol=lf
+gradlew eol=lf
+runLoadTest eol=lf
+runSupervisor eol=lf
+startDaemons eol=lf
+stopDaemons eol=lf
