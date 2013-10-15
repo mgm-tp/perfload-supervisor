@@ -70,13 +70,20 @@ class SshUtils {
 	private static Connection connect(String host) {
 		try {
 			Connection conn = new Connection(host)
+			println "Trying to establish SSH connection to '$host'..."
 			conn.connect(null, 10000, 10000)
 			println "Successfully established SSH connection to '$host'."
 			return conn
 		} catch (SocketTimeoutException ex) {
-			throw new RuntimeException("Timeout connecting to host '$host'", ex)
+			String msg = "Timeout connecting to host '$host'"
+			println msg
+			ex.printStackTrace()
+			throw new RuntimeException(msg, ex)
 		} catch (IOException ex) {
-			throw new RuntimeException("Error connecting to host '$host'", ex)
+			String msg = "Error connecting to host '$host'"
+			println msg
+			ex.printStackTrace();
+			throw new RuntimeException(msg, ex)
 		}
 	}
 
