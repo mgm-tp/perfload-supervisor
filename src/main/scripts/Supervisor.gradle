@@ -214,7 +214,7 @@ task abortLoadTest(dependsOn: loadTestplan, description: 'Aborts a load test') <
 				'-testplan',
 				testplan,
 				'-daemons',
-				daemons,
+				daemons.join(','),
 				'-abort'
 			].flatten())
 }
