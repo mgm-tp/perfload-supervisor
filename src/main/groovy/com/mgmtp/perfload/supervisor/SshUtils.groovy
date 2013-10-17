@@ -206,7 +206,7 @@ class SshUtils {
 			scpClient.get(file, os)
 			ok = true
 		} catch (IOException ex) {
-			println 'Error downloading file via SCP'
+			println "Error downloading file via SCP: $file"
 			ex.printStackTrace()
 		} finally {
 			IOUtils.closeQuietly(os)
