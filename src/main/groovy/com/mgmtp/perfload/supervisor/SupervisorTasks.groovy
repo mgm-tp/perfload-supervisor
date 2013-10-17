@@ -15,8 +15,11 @@
  */
 package com.mgmtp.perfload.supervisor
 
+import static com.mgmtp.perfload.supervisor.SupervisorUtils.getFileSeparator
 import groovyx.gpars.GParsExecutorsPool
 
+import org.codehaus.plexus.util.cli.Commandline
+import org.codehaus.plexus.util.cli.shell.CmdShell
 
 
 /**
@@ -72,7 +75,7 @@ class SupervisorTasks {
 		execClientTasks { String host, ConfigObject params ->
 			println "Zipping up daemon logs on '$host'..."
 			if ('localhost'.equals(host)) {
-				ant.zip(destfile: "${params.daemonDir}/daemon-logs.zip") {
+				ant.zip(destfile: "${params.daemonDir}${getFileSeparator(params.osfamily)}daemon-logs.zip") {
 					fileset (dir: params.daemonDir) { include(name: '*.log') }
 				}
 			} else {
@@ -84,7 +87,7 @@ class SupervisorTasks {
 	public void downloadDaemonLogs() {
 		execClientTasks { String host, ConfigObject params ->
 			println "Downloading daemon logs from '$host'..."
-			download(host, "$resultsDir/$host", "${params.daemonDir}/daemon-logs.zip")
+			download(host, "$resultsDir/$host", "${params.daemonDir}${getFileSeparator(params.osfamily)}daemon-logs.zip")
 		}
 	}
 
@@ -99,7 +102,7 @@ class SupervisorTasks {
 		execClientTasks { String host, ConfigObject params ->
 			println "Zipping up client logs on '$host'..."
 			if ('localhost'.equals(host)) {
-				ant.zip(destfile: "${params.clientDir}/client-logs.zip") {
+				ant.zip(destfile: "${params.clientDir}${getFileSeparator(params.osfamily)}client-logs.zip") {
 					fileset (dir: params.clientDir) { include(name: 'perfload-client*.log') }
 				}
 			} else {
@@ -111,7 +114,7 @@ class SupervisorTasks {
 	public void downloadClientLogs() {
 		execClientTasks { String host, ConfigObject params ->
 			println "Downloading client from '$host'..."
-			download(host, "$resultsDir/$host", "${params.clientDir}/client-logs.zip")
+			download(host, "$resultsDir/$host", "${params.clientDir}${getFileSeparator(params.osfamily)}client-logs.zip")
 		}
 	}
 
@@ -178,7 +181,7 @@ class SupervisorTasks {
 	public void downloadPerfmonLogs() {
 		execPerfmonTasks { String host, ConfigObject params ->
 			println "Downloading perfmon logs from '$host'..."
-			download(host, "$resultsDir/$host", "${params.perfmonDir}/perfmon-logs.zip")
+			download(host, "$resultsDir/$host", "${params.perfmonDir}${getFileSeparator(params.osfamily)}perfmon-logs.zip")
 		}
 	}
 
@@ -260,7 +263,7 @@ class SupervisorTasks {
 	public void downloadConfiguredFiles() {
 		execArchivingTasks { String host, String osfamily, ConfigObject zip ->
 			println "Downloading configured files from '$host'..."
-			download(host, "$resultsDir/$host", "${zip.dir}/${zip.zipName}")
+			download(host, "$resultsDir/$host", "${zip.dir}${getFileSeparator(osfamily)}${zip.zipName}")
 		}
 	}
 
@@ -305,6 +308,14 @@ class SupervisorTasks {
 			SupervisorUtils.executeCommandLine(command.executable, command.dir, command.args, timeoutMillis)
 		} else {
 			def cmd = "cd ${command.dir} && ${command.executable} ${command.args.join(' ')}"
+			if (hostConfig.osfamily == 'windows') {
+				//only necessary on Windows
+				CmdShell shell = new CmdShell()
+				shell.setQuotedExecutableEnabled(false)
+				Commandline cli = new Commandline(shell)
+				cli.setExecutable(cmd)
+				cmd = cli.toString()
+			}
 			println "Executing SSH command on '$host': $cmd"
 			String password = hostConfig.password ? hostConfig.password : null
 			if (hostConfig.pemFile) {

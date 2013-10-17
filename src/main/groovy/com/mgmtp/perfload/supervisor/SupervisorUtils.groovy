@@ -43,16 +43,21 @@ class SupervisorUtils {
 	 *
 	 * @param supervisorConfig the config object
 	 */
-	private static void enhanceConfig(ConfigObject supervisorConfig) {
-		supervisorConfig.hostConfigs.each { host, params ->
+	private static void enhanceConfig(ConfigObject loadTestConfig) {
+		loadTestConfig.hostConfigs.each { host, params ->
+			String delim = getFileSeparator(params.osfamily)
 			if (params.perfmon) {
-				params.perfmonDir = params.perfLoadHome + "/perfmon"
+				params.perfmonDir = "${params.perfLoadHome}${delim}perfmon"
 			}
 			if (params.daemonId) {
-				params.clientDir = params.perfLoadHome + "/client"
-				params.daemonDir = params.perfLoadHome + "/daemon"
+				params.clientDir = "${params.perfLoadHome}${delim}client"
+				params.daemonDir = "${params.perfLoadHome}${delim}daemon"
 			}
 		}
+	}
+
+	public static String getFileSeparator(String osfamily) {
+		return osfamily == 'windows' ? '\\' : '/'
 	}
 
 	/**
