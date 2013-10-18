@@ -128,14 +128,21 @@ class SshUtils {
 				}
 
 				Thread th = Thread.start {
-					while (stdout.available() > 0) {
-						stdout.withReader { println it.readLine() }
-					}
+					boolean stdoutAvailable = stdout.available() > 0
+					boolean stderrAvailable = stderr.available() > 0
 
-					while (stderr.available() > 0) {
-						stderr.withReader { println it.readLine() }
+					while (stdoutAvailable || stderrAvailable) {
+						if (stdoutAvailable) {
+							stdout.withReader { println "\t${it.readLine()}" }
+							stdoutAvailable = stdout.available() > 0
+						}
+						if (stderrAvailable) {
+							stderr.withReader { println "\t${it.readLine()}" }
+							stderrAvailable = stderr.available() > 0
+						}
 					}
 				}
+
 				// We need to obey a possible timeout. Otherwise this might block forever.
 				th.join(timeout)
 			}
