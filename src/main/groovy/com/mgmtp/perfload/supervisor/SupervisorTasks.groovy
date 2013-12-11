@@ -300,7 +300,7 @@ class SupervisorTasks {
 	/**
 	 * Executes an SSH command.
 	 */
-	private void executeCommand(String host, Map command, long timeoutMillis = 0L) {
+	public void executeCommand(String host, Map command, long timeoutMillis = 0L) {
 		ConfigObject hostConfig = loadTestConfig.hostConfigs[host]
 		Integer exitStatus
 
@@ -330,7 +330,7 @@ class SupervisorTasks {
 	/**
 	 * Downloads a file via SCP.
 	 */
-	private void download(String host, String todir, String file) {
+	public void download(String host, String todir, String file) {
 		new File(todir).mkdirs()
 
 		if ('localhost'.equals(host)) {
