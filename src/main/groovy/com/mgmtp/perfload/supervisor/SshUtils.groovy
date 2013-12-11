@@ -205,18 +205,21 @@ class SshUtils {
 		println "Downloading file '$file' from '${conn.hostname}' via SCP..."
 
 		SCPClient scpClient = new SCPClient(conn)
+		InputStream is = null
 		OutputStream os = null
 		File destFile = new File(todir, FilenameUtils.getName(file))
 		boolean ok = false
 		try {
 			os = new FileOutputStream(destFile)
-			scpClient.get(file, os)
+			is = scpClient.get(file)
+			IOUtils.copy(is, os)
 			ok = true
 		} catch (IOException ex) {
 			println "Error downloading file via SCP: $file"
 			ex.printStackTrace()
 		} finally {
 			IOUtils.closeQuietly(os)
+			IOUtils.closeQuietly(is)
 			if (!ok) {
 				// an empty corrupt zip file might have been stored
 				FileUtils.deleteQuietly(destFile)
