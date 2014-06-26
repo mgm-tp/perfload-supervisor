@@ -71,7 +71,7 @@ class SshUtils {
 		try {
 			Connection conn = new Connection(host)
 			println "Trying to establish SSH connection to '$host'..."
-			conn.connect(null, 10000, 10000)
+			conn.connect(null, 60000, 60000)
 			println "Successfully established SSH connection to '$host'."
 			return conn
 		} catch (SocketTimeoutException ex) {
