@@ -257,7 +257,7 @@ task executeStartupCommands(description: 'Executes configured startup commands')
 
 task executeShutdownCommands(description: 'Executes configured shutdown commands') << { supervisorTasks.execShutdownCommands() }
 
-task zipFiles(description: 'Zips all result files via SSH') << {
+task zipFiles(dependsOn: loadTestplan, description: 'Zips all result files via SSH') << {
 	zipConsoleFiles()
 	supervisorTasks.zipDaemonLogs()
 	supervisorTasks.zipClientLogs()
@@ -265,7 +265,7 @@ task zipFiles(description: 'Zips all result files via SSH') << {
 	supervisorTasks.zipConfiguredFiles()
 }
 
-task downloadFiles(description: 'Downloads all result files via SCP.') << {
+task downloadFiles(dependsOn: loadTestplan, description: 'Downloads all result files via SCP.') << {
 	supervisorTasks.downloadDaemonLogs()
 	supervisorTasks.downloadClientLogs()
 	supervisorTasks.downloadPerfmonLogs()
