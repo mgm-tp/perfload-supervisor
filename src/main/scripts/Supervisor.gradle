@@ -108,13 +108,14 @@ task loadTestplan(description: 'Loads the test plan possibly prompting for the t
 	}
 
 	// Use the testplan file's base name as the test name and add it to the script's binding.
-	// Thus, it is also accessible by an included 'ProjectTargets.gant' file.k
+	// Thus, it is also accessible by an included 'ProjectTargets.gradle' file.
 	project.ext.testname = FilenameUtils.getBaseName(testplan)
 
 	// prefix the results directory with a timestamp
 	DateFormat df = new SimpleDateFormat('yyyyMMdd-HHmm')
 
-	def testResultsDir = new File(resultsDir, "${tenant ? tenant + '/' : ''}${df.format(new Date())}_${FilenameUtils.getBaseName(testplan)}")
+	def dateString = project.hasProperty('testDate') ? testDate : df.format(new Date())
+	def testResultsDir = new File(resultsDir, "${tenant ? tenant + '/' : ''}${dateString}_${FilenameUtils.getBaseName(testplan)}")
 
 	project.ext.testResultsDir = testResultsDir
 	// sys prop necessary for logging to file, used in init.gradle
