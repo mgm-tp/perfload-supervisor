@@ -23,7 +23,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.mgmtp.perfload</groupId>
 	<artifactId>perfload-supervisor</artifactId>
-	<version>1.9.0</version>
+	<version>1.9.1-SNAPSHOT</version>
 	<packaging>jar</packaging>
 	<name>mgm perfLoad Supervisor</name>
 	<description>mgm perfLoad Supervisor</description>
@@ -39,7 +39,7 @@
 		<connection>scm:git:git://github.com/mgm-tp/perfload-supervisor.git</connection>
 		<developerConnection>scm:git:ssh://git@github.com/mgm-tp/perfload-supervisor.git</developerConnection>
 		<url>https://github.com/mgm-tp/perfload-supervisor</url>
-		<tag>perfload-supervisor-1.9.0</tag>
+		<tag>HEAD</tag>
 	</scm>
 
 	<licenses>
