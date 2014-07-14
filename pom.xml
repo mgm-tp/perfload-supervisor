@@ -154,6 +154,26 @@
 	</dependencies>
 	<profiles>
 		<profile>
+			<id>sonatype-oss-release</id>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>com.bluetrainsoftware.maven</groupId>
+						<artifactId>groovydoc-maven-plugin</artifactId>
+						<version>1.2</version>
+						<executions>
+							<execution>
+								<id>attach-docs</id>
+								<goals>
+									<goal>attach-docs</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+		<profile>
 			<!-- Profile for copying dependencies for the assembly -->
 			<id>dist</id>
 			<build>
@@ -181,8 +201,4 @@
 			</build>
 		</profile>
 	</profiles>
-
-	<properties>
-		<copyright.year>2013</copyright.year>
-	</properties>
 </project>
