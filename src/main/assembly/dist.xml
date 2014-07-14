@@ -58,6 +58,7 @@
 				<exclude>*.cmd</exclude>
 				<exclude>gradle/**</exclude>
 				<exclude>conf/**</exclude>
+				<exclude>Supervisor.gradle</exclude>
 			</excludes>
 			<lineEnding>lf</lineEnding>
 			<fileMode>775</fileMode>
