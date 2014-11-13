@@ -71,7 +71,7 @@ class SupervisorTasks {
 	 * Client methods                                                                                                                               *
 	 ************************************************************************************************************************************************/
 
-	public void zipDaemonLogs() {
+	public void archiveDaemonLogs() {
 		execClientTasks { String host, ConfigObject params ->
 			println "Zipping up daemon logs on '$host'..."
 			if ('localhost'.equals(host)) {
@@ -79,7 +79,7 @@ class SupervisorTasks {
 					fileset (dir: params.daemonDir) { include(name: '*.log') }
 				}
 			} else {
-				executeCommand(host, commands[params.osfamily].cmdZip(params.daemonDir, 'daemon-logs.zip', '*.log'))
+				executeCommand(host, commands[params.osfamily].cmdArchive(params.daemonDir, 'daemon-logs', '*.log'))
 			}
 		}
 	}
@@ -87,18 +87,18 @@ class SupervisorTasks {
 	public void downloadDaemonLogs() {
 		execClientTasks { String host, ConfigObject params ->
 			println "Downloading daemon logs from '$host'..."
-			download(host, "$resultsDir/$host", "${params.daemonDir}${getFileSeparator(params.osfamily)}daemon-logs.zip")
+			download(host, "$resultsDir/$host", "${params.daemonDir}${getFileSeparator(params.osfamily)}daemon-logs")
 		}
 	}
 
 	public void cleanupDaemonFiles() {
 		execClientTasks { String host, ConfigObject params ->
 			println "Cleaning up daemon logs on '$host'..."
-			executeCommand(host, commands[params.osfamily].cmdCleanup(params.daemonDir, ['daemon-logs.zip', '*.log']))
+			executeCommand(host, commands[params.osfamily].cmdCleanup(params.daemonDir, ['daemon-logs.*', '*.log']))
 		}
 	}
 
-	public void zipClientLogs() {
+	public void archiveClientLogs() {
 		execClientTasks { String host, ConfigObject params ->
 			println "Zipping up client logs on '$host'..."
 			if ('localhost'.equals(host)) {
@@ -106,7 +106,7 @@ class SupervisorTasks {
 					fileset (dir: params.clientDir) { include(name: 'perfload-client*.log') }
 				}
 			} else {
-				executeCommand(host, commands[params.osfamily].cmdZip(params.clientDir, 'client-logs.zip', 'perfload-client*.log'))
+				executeCommand(host, commands[params.osfamily].cmdArchive(params.clientDir, 'client-logs', 'perfload-client*.log'))
 			}
 		}
 	}
@@ -114,7 +114,7 @@ class SupervisorTasks {
 	public void downloadClientLogs() {
 		execClientTasks { String host, ConfigObject params ->
 			println "Downloading client from '$host'..."
-			download(host, "$resultsDir/$host", "${params.clientDir}${getFileSeparator(params.osfamily)}client-logs.zip")
+			download(host, "$resultsDir/$host", "${params.clientDir}${getFileSeparator(params.osfamily)}client-logs")
 		}
 	}
 
@@ -122,7 +122,7 @@ class SupervisorTasks {
 		execClientTasks { String host, ConfigObject params ->
 			println "Cleaning up client logs on '$host'..."
 			executeCommand(host, commands[params.osfamily].cmdCleanup(params.clientDir, [
-				'client-logs.zip',
+				'client-logs.*',
 				'perfload-client*.log'
 			]))
 		}
@@ -161,7 +161,7 @@ class SupervisorTasks {
 		}
 	}
 
-	public void zipPerfmonLogs() {
+	public void archivePerfmonLogs() {
 		execPerfmonTasks { String host, ConfigObject params ->
 			println "Zipping up perfmon logs on '$host'..."
 
@@ -173,7 +173,7 @@ class SupervisorTasks {
 					}
 				}
 			} else {
-				executeCommand(host, commands[params.osfamily].cmdZip(params.perfmonDir, 'perfmon-logs.zip', ['perfmon.out', '*.log']))
+				executeCommand(host, commands[params.osfamily].cmdArchive(params.perfmonDir, 'perfmon-logs', ['perfmon.out', '*.log']))
 			}
 		}
 	}
@@ -181,7 +181,7 @@ class SupervisorTasks {
 	public void downloadPerfmonLogs() {
 		execPerfmonTasks { String host, ConfigObject params ->
 			println "Downloading perfmon logs from '$host'..."
-			download(host, "$resultsDir/$host", "${params.perfmonDir}${getFileSeparator(params.osfamily)}perfmon-logs.zip")
+			download(host, "$resultsDir/$host", "${params.perfmonDir}${getFileSeparator(params.osfamily)}perfmon-logs")
 		}
 	}
 
@@ -189,7 +189,7 @@ class SupervisorTasks {
 		execPerfmonTasks { String host, ConfigObject params ->
 			println "Cleaning up perfmon logs on '$host'..."
 			executeCommand(host, commands[params.osfamily].cmdCleanup(params.perfmonDir, [
-				'perfmon-logs.zip',
+				'perfmon-logs.*',
 				'*.log',
 				'perfmon.out'
 			]))
@@ -244,34 +244,34 @@ class SupervisorTasks {
 	 * Archiving and clean-up methods on non-client hosts                                                                                           *
 	 ************************************************************************************************************************************************/
 
-	public void zipConfiguredFiles() {
-		execArchivingTasks { String host, String osfamily, ConfigObject zip ->
-			println "Zipping up configured files on '$host'..."
+	public void archiveConfiguredFiles() {
+		execArchivingTasks { String host, String osfamily, String transferDir, ConfigObject archive ->
+			println "archiveping up configured files on '$host'..."
 
 			if ('localhost'.equals(host)) {
-				ant.zip(destfile: "${zip.dir}/${zip.zipName}") {
-					fileset (dir: zip.dir) {
-						include(name: zip.files)
+				ant.zip(destfile: "${transferDir}/${archive.archiveName}.zip") {
+					fileset (dir: archive.dir) {
+						include(name: archive.files)
 					}
 				}
 			} else {
-				executeCommand(host, commands[osfamily].cmdZip(zip.dir, zip.zipName, zip.files))
+				executeCommand(host, commands[osfamily].cmdArchive(archive.dir, "${transferDir}${getFileSeparator(osfamily)}${archive.archiveName}", archive.files))
 			}
 		}
 	}
 
 	public void downloadConfiguredFiles() {
-		execArchivingTasks { String host, String osfamily, ConfigObject zip ->
+		execArchivingTasks { String host, String osfamily, String transferDir, ConfigObject archive ->
 			println "Downloading configured files from '$host'..."
-			download(host, "$resultsDir/$host", "${zip.dir}${getFileSeparator(osfamily)}${zip.zipName}")
+			download(host, "$resultsDir/$host", "${transferDir}${getFileSeparator(osfamily)}${archive.archiveName}")
 		}
 	}
 
 	public void cleanupConfiguredFiles() {
-		execArchivingTasks { String host, String osfamily, ConfigObject zip ->
-			if (zip.cleanup) {
+		execArchivingTasks { String host, String osfamily, String transferDir, ConfigObject archive ->
+			if (archive.cleanup) {
 				println "Cleaning up configured files on '$host'..."
-				executeCommand(host, commands[osfamily].cmdCleanup(zip.dir, "${zip.zipName} ${zip.files}"))
+				executeCommand(host, commands[osfamily].cmdCleanup(transferDir, "${archive.archiveName}.* ${archive.files}"))
 			}
 		}
 	}
@@ -285,8 +285,8 @@ class SupervisorTasks {
 			// Iterate over all host configs with an archiving entry
 			loadTestConfig.hostConfigs.eachParallel { String host, ConfigObject params ->
 				if (params.archiving) {
-					params.archiving.each { key, zip ->
-						archivingTask(host, params.osfamily, zip)
+					params.archiving.each { key, archive ->
+						archivingTask(host, params.osfamily, "${params.perfLoadHome}${getFileSeparator(params.osfamily)}transfer", archive)
 					}
 				}
 			}
@@ -296,6 +296,16 @@ class SupervisorTasks {
 	/************************************************************************************************************************************************
 	 * Various helper methods                                                                                                                       *
 	 ************************************************************************************************************************************************/
+
+	public void createTransferDirs() {
+		GParsExecutorsPool.withPool {
+			// Iterate over all host configs with an archiving entry
+			loadTestConfig.hostConfigs.eachParallel { String host, ConfigObject params ->
+				println "Creating transfer directory on '$host'..."
+				executeCommand(host, commands[params.osfamily].cmdCreateTransferDir(params.perfLoadHome), 5000L)
+			}
+		}
+	}
 
 	/**
 	 * Executes an SSH command.
@@ -330,16 +340,20 @@ class SupervisorTasks {
 	/**
 	 * Downloads a file via SCP.
 	 */
-	public void download(String host, String todir, String file) {
+	public void download(String host, String todir, String fileBaseName) {
 		new File(todir).mkdirs()
 
 		if ('localhost'.equals(host)) {
+			// local always zip
+			String file = "${fileBaseName}.zip"
 			println "Copying local file: $file"
 			ant.copy(file: file, todir: todir)
 		} else {
+			ConfigObject hostConfig = loadTestConfig.hostConfigs[host]
+			String ext = hostConfig.osfamily == 'windows' ? 'zip' : 'tar.gz'
+			String file = "${fileBaseName}.${ext}"
 			println "Downloading via SCP from '$host:$file'"
 
-			ConfigObject hostConfig = loadTestConfig.hostConfigs[host]
 			String password = hostConfig.password ? hostConfig.password : null
 			if (hostConfig.pemFile) {
 				SshUtils.scpDownload(host, hostConfig.user, new File(hostConfig.pemFile), password, todir, file)

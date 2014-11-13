@@ -21,6 +21,9 @@
 package com.mgmtp.perfload.supervisor
 
 unix {
+	cmdCreateTransferDir = { dir ->
+		map(dir, 'mkdir', ['transfer'])
+	}
 	cmdStartDaemon = { dir, port ->
 		map(dir, './daemon', ['-port', "$port"])
 	}
@@ -31,8 +34,12 @@ unix {
 			'-shutdown'
 		])
 	}
-	cmdZip = { dir, zip, files ->
-		map(dir, 'zip',	[zip, files])
+	cmdArchive = { dir, tarBaseName, files ->
+		map(dir, 'tar',	[
+			'cfz',
+			"${tarBaseName}.tar.gz",
+			files
+		])
 	}
 	cmdCleanup = { dir, files ->
 		map(dir, 'rm', ['-f', files])
@@ -49,8 +56,10 @@ unix {
 		map(dir,'./perfmon', ['-s'])
 	}
 }
-
 windows {
+	cmdCreateTransferDir = { dir ->
+		map(dir, 'mkdir', ['transfer'])
+	}
 	cmdStartDaemon = { dir, port ->
 		map(dir, 'daemon.cmd', ['-port', "$port"])
 	}
@@ -61,8 +70,8 @@ windows {
 			'-shutdown'
 		])
 	}
-	cmdZip = { dir, zip, files ->
-		map(dir, 'zip',	[zip, files])
+	cmdArchive = { dir, zipBaseName, files ->
+		map(dir, 'zip',	["${zipBaseName}.zip", files])
 	}
 	cmdCleanup = { dir, files ->
 		map(dir, 'del', ['/q', files])

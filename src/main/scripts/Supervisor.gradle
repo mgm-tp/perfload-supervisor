@@ -64,7 +64,7 @@ def config() {
 
 def welcome() {
 	int len = 65
-	String copyright = StringUtils.center('(c) 2013, mgm technology partners GmbH', len)
+	String copyright = StringUtils.center('(c) 2013 - 2014, mgm technology partners GmbH', len)
 	String welcomeMsg = StringUtils.center('Welcome to perfLoad\'s Supervisor ${project.version}', len)
 
 	List list1 = []
@@ -162,6 +162,8 @@ task runLoadTest(dependsOn: loadTestplan, description: 'Runs a load test.') << {
 	tasks << stopDaemons
 	tasks << stopPerfmons
 
+	tasks << createTransferDirs
+
 	if (supervisorConfig.runProjectSpecificTasks) {
 		tasks << after
 	}
@@ -174,7 +176,7 @@ task runLoadTest(dependsOn: loadTestplan, description: 'Runs a load test.') << {
 	tasks << writeTestComment
 
 	if (supervisorConfig.collectResults) {
-		tasks << zipFiles
+		tasks << archiveFiles
 		tasks << downloadFiles
 	}
 
@@ -254,16 +256,18 @@ task cleanupFiles(description : 'Perform all clean-up tasks.') << {
 	supervisorTasks.cleanupConfiguredFiles()
 }
 
+task createTransferDirs(description: 'Creates transfer directories') << { supervisorTasks.createTransferDirs() }
+
 task executeStartupCommands(description: 'Executes configured startup commands') << { supervisorTasks.execStartupCommands() }
 
 task executeShutdownCommands(description: 'Executes configured shutdown commands') << { supervisorTasks.execShutdownCommands() }
 
-task zipFiles(dependsOn: loadTestplan, description: 'Zips all result files via SSH') << {
-	zipConsoleFiles()
-	supervisorTasks.zipDaemonLogs()
-	supervisorTasks.zipClientLogs()
-	supervisorTasks.zipPerfmonLogs()
-	supervisorTasks.zipConfiguredFiles()
+task archiveFiles(dependsOn: loadTestplan, description: 'Archives all result files via SSH') << {
+	archiveConsoleFiles()
+	supervisorTasks.archiveDaemonLogs()
+	supervisorTasks.archiveClientLogs()
+	supervisorTasks.archivePerfmonLogs()
+	supervisorTasks.archiveConfiguredFiles()
 }
 
 task downloadFiles(dependsOn: loadTestplan, description: 'Downloads all result files via SCP.') << {
@@ -308,12 +312,12 @@ def String promptForTestplan() {
 	}
 }
 
-def zipConsoleFiles() {
+def archiveConsoleFiles() {
 	File testplanFile = new File("${consoleDir}/testplans/${testplan}")
 	def config = new XmlSlurper().parse(testplanFile)
 	String eventsFile = config.loadProfile
 
-	task(zipConsoleFiles, type: Zip) {
+	task(archiveConsoleFiles, type: Zip) {
 		from(consoleDir) {
 			include '*.log'
 			include 'ltStatus.txt'
