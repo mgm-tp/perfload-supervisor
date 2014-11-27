@@ -13,18 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import java.text.DateFormat
-import java.text.SimpleDateFormat
-
-import org.apache.commons.io.FilenameUtils
-import org.apache.commons.lang3.StringUtils
-import org.apache.commons.lang3.time.StopWatch
-import org.apache.tools.ant.taskdefs.condition.Os
-import org.codehaus.plexus.util.cli.Commandline;
 
 import com.mgmtp.perfload.supervisor.Commands
 import com.mgmtp.perfload.supervisor.SupervisorTasks
 import com.mgmtp.perfload.supervisor.SupervisorUtils
+import org.apache.commons.io.FilenameUtils
+import org.apache.commons.lang3.StringUtils
+import org.apache.commons.lang3.time.StopWatch
+
+import java.text.DateFormat
+import java.text.SimpleDateFormat
 
 buildscript {
 	dependencies {
@@ -63,37 +61,23 @@ def config() {
 }
 
 def welcome() {
-	int len = 65
-	String copyright = StringUtils.center('(c) 2013 - 2014, mgm technology partners GmbH', len)
-	String welcomeMsg = StringUtils.center('Welcome to perfLoad\'s Supervisor ${project.version}', len)
+	String msgTemplate = getClass().getResource('/supervisor-msg.txt').getText('UTF-8')
+	int len = 60
 
-	List list1 = []
-	(len + 2).times { list1 << '*' }
-	String msg1 = list1.join()
+	println msgTemplate
+			.replace('@msg1@', '(c) 2013 - 2014, mgm technology partners GmbH'.center(len))
+			.replace('@msg2@', 'Welcome to perfLoad\'s Supervisor ${project.version}'.center(len))
 
-	List list2 = ['*']
-	len.times { list2 << ' ' }
-	list2 << '*'
-	String msg2 = list2.join()
-
-	String message = """
-	$msg1
-	$msg2
-	$msg2
-	*${welcomeMsg}*
-	*${copyright}*
-	$msg2
-	$msg2
-	$msg1
-	"""
-
-	println message
+	println()
 
 	if (tenant) {
 		println "Running in multi-tenancy mode. Tenant: $tenant."
 	} else {
 		println 'No tenant specified. Running in single-tenancy mode.'
 	}
+
+	println()
+	println()
 }
 
 task init(description: 'Initializes the Supervisor loading basic configuration for testplan-independent tasks') {
@@ -102,7 +86,7 @@ task init(description: 'Initializes the Supervisor loading basic configuration f
 }
 
 task loadTestplan(description: 'Loads the test plan possibly prompting for the testplan to be used.') << {
-	// if not set via command-line (-Dtestplan=<...>), the user is prompted for the test config to be used
+	// if not set via command-line (-Ptestplan=<...>), the user is prompted for the test config to be used
 	if (!project.hasProperty('testplan')) {
 		project.ext.testplan = promptForTestplan()
 	}
@@ -181,7 +165,7 @@ task runLoadTest(dependsOn: loadTestplan, description: 'Runs a load test.') << {
 	}
 
 	if (supervisorConfig.createReport) {
-		tasks <<  runPerfAlyzer
+		tasks << runPerfAlyzer
 	}
 
 	StopWatch stopWatch = new StopWatch()
@@ -201,12 +185,12 @@ task startTest(dependsOn: loadTestplan, description: 'Starts a load test') << {
 	List daemons = SupervisorUtils.readDaemonsFromConfig(loadTestConfig)
 	SupervisorUtils.executeCommandLine("./console", consoleDir,
 			[
-				'-testplan',
-				testplan,
-				'-daemons',
-				daemons.join(','),
-				'-timeout',
-				"${supervisorConfig.loadProfileTestTimeout}"
+					'-testplan',
+					testplan,
+					'-daemons',
+					daemons.join(','),
+					'-timeout',
+					"${supervisorConfig.loadProfileTestTimeout}"
 			].flatten())
 }
 
@@ -214,11 +198,11 @@ task abortLoadTest(dependsOn: loadTestplan, description: 'Aborts a load test') <
 	List daemons = SupervisorUtils.readDaemonsFromConfig(loadTestConfig)
 	SupervisorUtils.executeCommandLine("./console", consoleDir,
 			[
-				'-testplan',
-				testplan,
-				'-daemons',
-				daemons.join(','),
-				'-abort'
+					'-testplan',
+					testplan,
+					'-daemons',
+					daemons.join(','),
+					'-abort'
 			].flatten())
 }
 
@@ -227,10 +211,10 @@ task runPerfAlyzer(dependsOn: loadTestplan, description: 'Run perfAlyzer to crea
 
 	SupervisorUtils.executeCommandLine("./perfalyzer", perfAlyzerDir,
 			[
-				'-i',
-				absoluteResultsDir,
-				'-o',
-				"output${tenant ? '/'+ tenant : ''}"
+					'-i',
+					absoluteResultsDir,
+					'-o',
+					"output${tenant ? '/' + tenant : ''}"
 			])
 }
 
@@ -248,7 +232,7 @@ task startPerfmons(description: 'Starts perfmons') << { supervisorTasks.startPer
 
 task stopPerfmons(description: 'Stops perfmons') << { supervisorTasks.stopPerfmons() }
 
-task cleanupFiles(description : 'Perform all clean-up tasks.') << {
+task cleanupFiles(description: 'Perform all clean-up tasks.') << {
 	cleanupConsoleFiles()
 	supervisorTasks.cleanupDaemonFiles()
 	supervisorTasks.cleanupClientFiles()
