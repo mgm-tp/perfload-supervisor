@@ -277,17 +277,17 @@ task downloadFiles(dependsOn: loadTestplan, description: 'Downloads all result f
 	supervisorTasks.downloadConfiguredFiles()
 }
 
-/**
- * Prompts the user to select a testplan and returns the selected one.
- */
+task listTestplans(description: 'Display a list of available testplans') << {
+	Map<Integer, String> testplans = readTestplans(tenant)
+	println listTestplans(testplans)
+}
+
 def String promptForTestplan() {
-	int i = 1
-	Map<Integer, String> testplans = [:]
-	new File(consoleDir, "testplans/${tenant ? tenant : ''}").eachFileMatch(~/(?!testjars).*\.xml/, { testplans[i++] = it.name })
+	Map<Integer, String> testplans = readTestplans(tenant)
 
 	String lineSep = System.properties.'line.separator'
 	String prompt = "${lineSep}Please select the testplan you'd like to use:$lineSep"
-	prompt += testplans.collect{ key, value -> "${StringUtils.leftPad(String.valueOf(key), 3)}) $value" }.join(lineSep) + lineSep
+	prompt += listTestplans(testplans)
 
 	// display all configured testplans prefixed by running numbers,
 	// which the user needs to enter in order to select the desired testplan
@@ -310,6 +310,18 @@ def String promptForTestplan() {
 
 		return "${tenant ? tenant + '/' : ''}$selectedTestplan"
 	}
+}
+
+def Map<Integer, String> readTestplans(String tenant) {
+	int i = 1
+	Map<Integer, String> testplans = [:]
+	new File(consoleDir, "testplans/${tenant ? tenant : ''}").eachFileMatch(~/(?!testjars).*\.xml/, { testplans[i++] = it.name })
+	testplans
+}
+
+def String listTestplans(Map<Integer, String> testplans) {
+	String lineSep = System.properties.'line.separator'
+	testplans.collect { key, value -> "${StringUtils.leftPad(String.valueOf(key), 3)}) $value" }.join(lineSep) + lineSep
 }
 
 def archiveConsoleFiles() {
