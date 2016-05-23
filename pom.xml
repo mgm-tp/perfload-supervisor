@@ -95,8 +95,8 @@
 				</dependencies>
 			</plugin>
 			<plugin>
-				<groupId>com.mycila.maven-license-plugin</groupId>
-				<artifactId>maven-license-plugin</artifactId>
+				<groupId>com.mycila</groupId>
+				<artifactId>license-maven-plugin</artifactId>
 				<configuration>
 					<excludes combine.children="append">
 						<exclude>src/main/scripts/conf/*</exclude>
@@ -207,7 +207,7 @@
 
 	<properties>
 		<groovy.version>2.3.7</groovy.version>
-		<groovy-eclipse-compiler.version>2.9.0-01</groovy-eclipse-compiler.version>
-		<groovy-eclipse-batch.version>2.3.4-01</groovy-eclipse-batch.version>
+		<groovy-eclipse-compiler.version>2.9.2-01</groovy-eclipse-compiler.version>
+		<groovy-eclipse-batch.version>2.4.3-01</groovy-eclipse-batch.version>
 	</properties>
 </project>
