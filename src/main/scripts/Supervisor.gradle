@@ -65,7 +65,7 @@ def welcome() {
 	int len = 60
 
 	println msgTemplate
-			.replace('@msg1@', '(c) 2013 - 2014, mgm technology partners GmbH'.center(len))
+			.replace('@msg1@', '(c) 2013 - 2016, mgm technology partners GmbH'.center(len))
 			.replace('@msg2@', 'Welcome to perfLoad\'s Supervisor ${project.version}'.center(len))
 
 	println()
@@ -262,12 +262,12 @@ task downloadFiles(dependsOn: loadTestplan, description: 'Downloads all result f
 }
 
 task listTestplans(description: 'Display a list of available testplans') << {
-	Map<Integer, String> testplans = readTestplans(tenant)
+	List<String> testplans = readTestplans(tenant)
 	println listTestplans(testplans)
 }
 
 def String promptForTestplan() {
-	Map<Integer, String> testplans = readTestplans(tenant)
+	List<String> testplans = readTestplans(tenant)
 
 	String lineSep = System.properties.'line.separator'
 	String prompt = "${lineSep}Please select the testplan you'd like to use:$lineSep"
@@ -296,16 +296,16 @@ def String promptForTestplan() {
 	}
 }
 
-def Map<Integer, String> readTestplans(String tenant) {
-	int i = 1
-	Map<Integer, String> testplans = [:]
-	new File(consoleDir, "testplans/${tenant ? tenant : ''}").eachFileMatch(~/(?!testjars).*\.xml/, { testplans[i++] = it.name })
+def List<String> readTestplans(String tenant) {
+	List<String> testplans = []
+	new File(consoleDir, "testplans/${tenant ? tenant : ''}").eachFileMatch(~/(?!testjars).*\.xml/, { testplans << it.name })
 	testplans
 }
 
-def String listTestplans(Map<Integer, String> testplans) {
+def String listTestplans(List<String> testplans) {
 	String lineSep = System.properties.'line.separator'
-	testplans.collect { key, value -> "${StringUtils.leftPad(String.valueOf(key), 3)}) $value" }.join(lineSep) + lineSep
+	int i = 1
+	testplans.collect { "${StringUtils.leftPad(String.valueOf(i++), 3)}) $it" }.join(lineSep) + lineSep
 }
 
 def archiveConsoleFiles() {
