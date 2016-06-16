@@ -164,7 +164,7 @@
 	</dependencies>
 	<profiles>
 		<profile>
-			<id>sonatype-oss-release</id>
+			<id>attachJavadocs</id>
 			<build>
 				<plugins>
 					<plugin>
