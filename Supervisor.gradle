@@ -65,8 +65,8 @@ def welcome() {
 	int len = 60
 
 	println msgTemplate
-			.replace('@msg1@', '(c) 2013 - 2016, mgm technology partners GmbH'.center(len))
-			.replace('@msg2@', 'Welcome to perfLoad\'s Supervisor ${project.version}'.center(len))
+			.replace('@msg1@', '(c) 2013 - 2015, mgm technology partners GmbH'.center(len))
+			.replace('@msg2@', 'Welcome to perfLoad\'s Supervisor 2.0.0-SNAPSHOT'.center(len))
 
 	println()
 
