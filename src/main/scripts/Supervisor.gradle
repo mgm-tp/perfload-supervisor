@@ -112,8 +112,7 @@ task loadTestplan(description: 'Loads the test plan possibly prompting for the t
 task runLoadTest(dependsOn: loadTestplan, description: 'Runs a load test.') << {
 	// if not set via command-line (-DtestComment=<...>), the user is prompted for the test config to be used
 	if (!project.hasProperty('testComment')) {
-		def console = System.console()
-		project.ext.testComment = console.readLine('\nPlease enter some comment for the test:')
+		project.ext.testComment = new Console().readLine('\nPlease enter some comment for the test:')
 	}
 
 	def tasks = []
@@ -276,7 +275,7 @@ def String promptForTestplan() {
 	// display all configured testplans prefixed by running numbers,
 	// which the user needs to enter in order to select the desired testplan
 	while (true) {
-		def testplanIndex = System.console().readLine(prompt)
+		def testplanIndex = new Console().readLine(prompt)
 		int index
 
 		try {
@@ -336,6 +335,33 @@ def cleanupConsoleFiles() {
 			include(name: 'ltStatus.txt')
 			include(name: 'ltThreads.txt')
 			include(name: 'perfload.meta.utf8.props')
+		}
+	}
+}
+
+class Console {
+
+	private final java.io.Console console
+	private BufferedReader oldFashionedReader
+
+	Console() {
+		console = System.console()
+		if (console == null) {
+			oldFashionedReader = new BufferedReader(new InputStreamReader(System.in))
+		}
+	}
+
+	String readLine(String prompt) {
+		if (console != null) {
+			return console.readLine(prompt)
+		} else {
+			try {
+				println(prompt)
+				return oldFashionedReader.readLine()
+			} catch (IOException ex) {
+				// can't really happen
+				throw new UncheckedIOException(ex)
+			}
 		}
 	}
 }
