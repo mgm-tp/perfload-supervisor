@@ -23,6 +23,7 @@ import org.apache.commons.lang3.time.StopWatch
 
 import java.text.DateFormat
 import java.text.SimpleDateFormat
+import java.util.Collections
 
 buildscript {
 	dependencies {
@@ -300,6 +301,7 @@ def String promptForTestplan() {
 def List<String> readTestplans(String tenant) {
 	List<String> testplans = []
 	new File(consoleDir, "testplans/${tenant ? tenant : ''}").eachFileMatch(~/(?!testjars).*\.xml/, { testplans << it.name })
+	Collections.sort(testplans)
 	testplans
 }
 
