@@ -246,7 +246,7 @@ class SupervisorTasks {
 
 	public void archiveConfiguredFiles() {
 		execArchivingTasks { String host, String osfamily, String transferDir, ConfigObject archive ->
-			println "archiveping up configured files on '$host'..."
+			println "Archiving up configured files on '$host'..."
 
 			if ('localhost'.equals(host)) {
 				ant.zip(destfile: "${transferDir}/${archive.archiveName}.zip") {
@@ -270,8 +270,9 @@ class SupervisorTasks {
 	public void cleanupConfiguredFiles() {
 		execArchivingTasks { String host, String osfamily, String transferDir, ConfigObject archive ->
 			if (archive.cleanup) {
-				println "Cleaning up configured files on '$host'..."
-				executeCommand(host, commands[osfamily].cmdCleanup(transferDir, "${archive.archiveName}.* ${archive.files}"))
+				println "Cleaning up configured files ('$archive.files') on '$host'..."
+				executeCommand(host, commands[osfamily].cmdCleanup(transferDir, "${archive.archiveName}.*"))
+				executeCommand(host, commands[osfamily].cmdCleanup(archive.dir, "${archive.files}"))
 			}
 		}
 	}
