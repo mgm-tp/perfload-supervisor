@@ -32,7 +32,7 @@ hostConfigs {
 			appServerLogs {
 				dir = '/dir/to/appserver/logs'
 				files = '*.log'
-				zipName = 'appserver-logs.zip'
+				archiveName = 'appserver-logs'
 				cleanup = true
 			}
 		}
@@ -53,7 +53,7 @@ hostConfigs {
 			appServerLogs {
 				dir = '/dir/to/appserver/logs'
 				files = '*.log'
-				zipName = 'appserver-logs.zip'
+				archiveName = 'appserver-logs'
 				cleanup = true
 			}
 		}
