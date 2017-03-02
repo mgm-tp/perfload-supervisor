@@ -24,6 +24,7 @@ import org.apache.commons.lang3.time.StopWatch
 import java.text.DateFormat
 import java.text.SimpleDateFormat
 import java.util.Collections
+import java.util.regex.Matcher
 
 buildscript {
 	dependencies {
@@ -39,9 +40,14 @@ def config() {
 			tenant = System.getenv('PERFLOAD_TENANT')
 		}
 
+		if (!project.hasProperty('system')) {
+			system = System.getenv('PERFLOAD_SYSTEM')
+		}
+
 		supervisorConfig = SupervisorUtils.loadConfig(tenant, 'SupervisorConfig.groovy')
 		commands = SupervisorUtils.loadConfig(Commands.class)
-		loadTestConfig = SupervisorUtils.loadTestConfig(tenant, 'LoadTestConfig.groovy')
+
+		loadTestConfig = null  // loadTestConfig can only be determined after we have chosen the testplan to use
 		supervisorTasks = new SupervisorTasks(ant: ant, loadTestConfig: loadTestConfig, commands: commands)
 
 		resultsDir = "$projectDir/results"
@@ -52,13 +58,6 @@ def config() {
 			testComment = ''
 		}
 	}
-	if (supervisorConfig.runProjectSpecificTasks) {
-		// includes project-specific targets as if they were directly defined in this file
-		String projectTasksFile = "conf/${tenant ? tenant + '/' : ''}ProjectTasks.gradle"
-		println "Including project targets file: $projectTasksFile"
-
-		apply from: projectTasksFile
-	}
 }
 
 def welcome() {
@@ -66,7 +65,7 @@ def welcome() {
 	int len = 60
 
 	println msgTemplate
-			.replace('@msg1@', '(c) 2013 - 2016, mgm technology partners GmbH'.center(len))
+			.replace('@msg1@', '(c) 2013 - 2017, mgm technology partners GmbH'.center(len))
 			.replace('@msg2@', 'Welcome to perfLoad\'s Supervisor ${project.version}'.center(len))
 
 	println()
@@ -76,6 +75,12 @@ def welcome() {
 	} else {
 		println 'No tenant specified. Running in single-tenancy mode.'
 	}
+	
+	if (system) {
+		println "Running in multi-system mode. System: $system."
+	} else {
+		println 'No system specified. Running in single-system mode.'
+	}	
 
 	println()
 	println()
@@ -108,6 +113,21 @@ task loadTestplan(description: 'Loads the test plan possibly prompting for the t
 
 	testResultsDir.mkdirs()
 	supervisorTasks.resultsDir = testResultsDir
+
+	// set the LoadTestConfig - possibly depending on the tenant and system 
+	String loadTestConfigFilename = buildConfigFileName(system, 'LoadTestConfig', '.groovy', testplan)
+	loadTestConfig = SupervisorUtils.loadTestConfig(tenant, loadTestConfigFilename)
+	println "Using loadTestConfig: $loadTestConfigFilename"
+	supervisorTasks.loadTestConfig = loadTestConfig
+	
+	// if it's use is enabled, then set the ProjectSpecificTasks - possibly depending on the tenant and system
+	if (supervisorConfig.runProjectSpecificTasks) {
+		String projectTasksFilename = buildConfigFileName(system, 'ProjectTasks', '.gradle', testplan)
+		String projectTasks = "conf/${tenant ? tenant + '/' : ''}$projectTasksFilename"
+		println "Including project tasks file: $projectTasks"
+		// includes project-specific tasks as if they were directly defined in this file
+		apply from: projectTasks
+	}
 }
 
 task runLoadTest(dependsOn: loadTestplan, description: 'Runs a load test.') << {
@@ -267,7 +287,7 @@ task listTestplans(description: 'Display a list of available testplans') << {
 }
 
 def String promptForTestplan() {
-	List<String> testplans = readTestplans(tenant)
+	List<String> testplans = readTestplans(tenant, system)
 	
 	String lineSep = System.properties.'line.separator'
 	String prompt = "${lineSep}Please select the testplan you'd like to use:$lineSep"
@@ -298,17 +318,108 @@ def String promptForTestplan() {
 	}
 }
 
-def List<String> readTestplans(String tenant) {
+/**
+ * Retrieves all testplans from the perfLoad console's testplan directory that match the previously set tenant and system.
+ * 
+ * Possible cases:
+ * - If neither a tenant nor a system are set, then simply all XML-files from the console's testplan directory are returned.
+ * - If a tenant 'x' is set, but no system, then all XML-files from the console's testplan directory in the subfolder 'x' are
+ *   returned.
+ * - If a system 'y' is set, but no tenant, then all  XML-files from the console's testplan directory whose filenames match the
+ *   pattern '_y.xml' are returned.
+ * - if both a tenant 'x' and a system 'y' are set,  then all XML-files from the console's testplan directory in the subfolder 'x'
+ *   are returned, whose filenames match the pattern '_y.xml'.
+ * 
+ * @param tenant the tenant of the load test
+ * @param system the system that the load test should be executed against
+ * @return all matching testplans, or an empty list if no testplans could be retrieved
+ * 
+ */
+def List<String> readTestplans(String tenant, String system) {
 	List<String> testplans = []
-	new File(consoleDir, "testplans/${tenant ? tenant : ''}").eachFileMatch(~/(?!testjars).*\.xml/, { testplans << it.name })
+	List<String> complementaryTestplans = []
+	File testplanDir = new File(consoleDir, "testplans/${tenant ? tenant : ''}")
+
+	String systemSuffices = readSystemSufficesPattern(tenant)
+	def systemSufficesPattern = '(' + (systemSuffices ? systemSuffices + '|' : '')  + 'shared|SHARED)'
+	if (system) {
+		if (system.equals('ALL') || system.equals('all') ) {
+			testplanDir.eachFileMatch(~/.+?_${systemSufficesPattern}\.xml/, { testplans << it.name })
+		} else {
+			def specificSystemPattern = '(' + system + '|shared|SHARED)'
+			testplanDir.eachFileMatch(~/.+?_${specificSystemPattern}\.xml/, { testplans << it.name })
+		}
+	} else {
+		testplanDir.eachFileMatch(~/.+?_${systemSufficesPattern}\.xml/, { complementaryTestplans << it.name })
+		testplanDir.eachFileMatch(~/.+?\.xml/, {
+			if (!complementaryTestplans.contains(it.name)) { testplans << it.name }
+		})
+	}
+	if(testplans.isEmpty()) {
+		throw new GradleException('No testplans are available for the given combination of tenant and system.')
+	}
 	Collections.sort(testplans)
 	testplans
+}
+
+/**
+ * Retrieves all system-specific suffices from the load test configuration files, possibly for a given tenant.
+ * If a tenant 'x' is provided, then files in the subfolder 'x' of the perfLoad supervisor's 'conf' folder
+ * are traversed, otherwise the files in the 'conf' folder itself are traversed.
+ * 
+ * Example:
+ * Let us say there are three files in the folder 'conf/x', namely 'LoadTestConfig.groovy', 'LoadTestConfig_QA.groovy'
+ * and 'LoadTestConfig_PROD.groovy', then the method will return a list containing the strings 'QA' and 'PROD'.  
+ * 
+ * @param tenant the tenant of the load test
+ * @return all matching system-suffices, or an empty list if no system-suffices could be retrieved
+ * 
+ */
+def String readSystemSufficesPattern(String tenant) {
+	List<String> systemSuffices = []
+	new File('.', "conf/${tenant ? tenant : ''}").eachFileMatch(~/LoadTestConfig_.+\.groovy/, {
+		systemSuffices << (it.name =~ ~/LoadTestConfig_(.+)\.groovy/)[0][1]
+	})
+	systemSuffices.join('|')
 }
 
 def String listTestplans(List<String> testplans) {
 	String lineSep = System.properties.'line.separator'
 	int i = 1
 	testplans.collect { "${StringUtils.leftPad(String.valueOf(i++), 3)}) $it" }.join(lineSep) + lineSep
+}
+
+/**
+ * Builds a (possibly system-specific) config filename from the given system or testplan information.
+ * 
+ * Possible cases:
+ * - If no system is set, then simply a concatenation of the base filename and the ending is returned, e.g.: LoadTestConfig.groovy  
+ * - If system is set to generic value 'ALL', then the system suffix of the config file must be retrieved from the previously 
+ *   chosen testplan, e.g.: testplan_x.xml -> LoadTestConfig_x.groovy
+ * - If a system 'y' is set, then the config file will contain the respective system suffix, e.g. LoadTestConfig_y.groovy
+ * 
+ * @param system the system that the load test should be executed against
+ * @param configFileBaseName the base filename of the config file to build, i.e. without system or filetype suffix
+ * @param configFileSuffix the filetype suffix of the config file to build 
+ * @param testplan the testplan that has previously been chosen
+ * @return the config filename that was build from the system information provided
+ * 
+ */
+def String buildConfigFileName(String system, String configFileBaseName, String configFileSuffix, String testplan) {
+	String configFileName = null
+	if (system) {	// multi-system mode
+		if (system == 'ALL' || system == 'all') {  // ... the specific system to use is implicitly determined by the testplan
+			String testplanBaseName = FilenameUtils.getBaseName(testplan)
+			Matcher matcher = testplanBaseName =~ /_([^_]+)$/
+			assert matcher[0] != null, "Could not retrieve a 'system' suffix from testplan base name"
+			configFileName = configFileBaseName + '_' + matcher[0][1] + configFileSuffix
+		} else {	// ... the specific system was already set in advance
+			configFileName = configFileBaseName + '_' + system + configFileSuffix
+		}
+	} else {	// single-system mode
+		configFileName = configFileBaseName + configFileSuffix
+	}
+	configFileName
 }
 
 def archiveConsoleFiles() {
