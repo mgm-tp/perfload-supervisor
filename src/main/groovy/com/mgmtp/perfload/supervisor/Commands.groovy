@@ -48,6 +48,7 @@ unix {
 		map(dir, './perfmon', [
 			'-j',
 			'-n',
+			'-t',
 			'-f',
 			'perfmon.out'
 		])
@@ -80,6 +81,7 @@ windows {
 		map(dir, 'perfmon.cmd', [
 			'-j',
 			'-n',
+			'-t',
 			'-f',
 			'perfmon.out'
 		])
