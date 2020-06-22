@@ -318,7 +318,7 @@ class SupervisorTasks {
 		if ('localhost'.equals(host)) {
 			SupervisorUtils.executeCommandLine(command.executable, command.dir, command.args, timeoutMillis)
 		} else {
-			def cmd = "cd ${command.dir} && ${command.executable} ${command.args.join(' ')}"
+			def cmd = "cd "+(hostConfig.osfamily == 'windows'?"/d ":"") +"${command.dir} && ${command.executable} ${command.args.join(' ')}"
 			if (hostConfig.osfamily == 'windows') {
 				//only necessary on Windows
 				CmdShell shell = new CmdShell()
